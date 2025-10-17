@@ -1,0 +1,15 @@
+# Additional requirements for the AI Engineering Learning App
+# Install these on top of the main project requirements.txt
+
+# Web UI Framework (stable version for GitHub Codespaces compatibility)
+gradio==4.19.0
+
+# Embedding models (required for the app)
+sentence-transformers==4.0.2
+accelerate==1.6.0
+
+# These are already in main requirements.txt but listed here for reference:
+# llama-index-core>=0.12.27
+# llama-index-readers-file>=0.4.7
+# llama-index-retrievers-bm25>=0.5.2
+# chromadb>=0.6.3

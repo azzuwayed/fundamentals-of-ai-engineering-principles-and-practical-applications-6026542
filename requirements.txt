@@ -20,6 +20,10 @@ docx2txt==0.9
 # Chroma
 chromadb==0.6.3
 
+# Sentence Transformers (needed for embeddings and learning app)
+sentence-transformers==4.0.2
+accelerate==1.6.0
+
 # This is a slow dependency to install, even with uv. We install it live in the notebook that uses it
 # llama-index-embeddings-huggingface==0.5.2
 
@@ -28,3 +32,6 @@ chromadb==0.6.3
 
 # Scikit-Learn
 scikit-learn==1.6.1
+
+# Learning App UI (using stable version for compatibility)
+gradio==4.19.0

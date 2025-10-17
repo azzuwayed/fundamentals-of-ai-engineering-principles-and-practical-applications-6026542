@@ -21,6 +21,7 @@ LinkedIn Learning course "Fundamentals of AI Engineering: Principles and Practic
 - `chapter_5/` - ChromaDB vector database operations
 - `chapter_6/` - Hybrid retrieval (BM25 vs vector search)
 - `doc_samples/` - Sample documents for testing
+- `learning_app/` - Interactive Gradio app for hands-on learning (NEW)
 
 ## Key Technologies
 
@@ -99,3 +100,76 @@ All notebooks have been polished with:
 - **Chapter 4:** 04_02, 04_03, 04_04 (3 notebooks)
 - **Chapter 5:** 05_02, 05_03, 05_04, 05_05 (4 notebooks)
 - **Chapter 6:** 06_02, 06_03, 06_04, 06_05 (4 notebooks)
+
+## Interactive Learning App
+
+**Location:** `learning_app/`
+
+A comprehensive Gradio-based web application that provides hands-on experimentation with all course concepts.
+
+### Features
+
+1. **Document Processing Tab** (Chapter 3)
+   - Upload or select pre-loaded documents (PDF, DOCX, TXT, JSON, CSV)
+   - Clean and preprocess text
+   - Preview chunking with adjustable parameters
+
+2. **Embeddings Playground** (Chapter 4)
+   - Compare embedding models (all-MiniLM-L6-v2, all-mpnet-base-v2, paraphrase-MiniLM)
+   - Compute semantic similarity between texts
+   - View embedding dimensions and generation times
+
+3. **Vector Search Lab** (Chapter 5)
+   - Load documents into ChromaDB
+   - Perform semantic search with tunable parameters
+   - Benchmark query performance
+
+4. **Hybrid Retrieval Studio** (Chapter 6)
+   - Compare BM25 (lexical) vs Vector (semantic) vs Hybrid retrieval
+   - Adjust BM25/Vector weights dynamically
+   - Enable cross-encoder reranking
+   - Side-by-side method comparison
+
+### Running the App
+
+```bash
+# Install dependencies (if not already installed)
+uv pip install -r requirements.txt
+
+# Launch the app
+cd learning_app
+python app.py
+
+# Open browser to http://localhost:7860
+# In GitHub Codespaces: Check PORTS tab for forwarded URL
+```
+
+**Note:** Uses Gradio 4.19.0 (stable version) for compatibility with GitHub Codespaces and local environments.
+
+### Architecture
+
+```
+learning_app/
+├── app.py                    # Main Gradio application
+├── modules/                  # Core functionality
+│   ├── document_processor.py # Document extraction & chunking
+│   ├── embeddings_engine.py  # Embedding generation & similarity
+│   ├── vector_store.py       # ChromaDB operations
+│   └── retrieval_pipeline.py # BM25, vector, hybrid retrieval
+├── utils/                    # Helper functions
+│   ├── formatters.py         # Output formatting
+│   └── validators.py         # Input validation
+└── data/
+    ├── preloaded/            # Sample documents (from doc_samples/)
+    └── uploads/              # User-uploaded files
+```
+
+### Usage Notes
+
+- **Progressive learning**: Tabs are ordered logically (3→4→5→6)
+- **Document flow**: Process documents in Tab 1, then use in other tabs
+- **Parameter experimentation**: All key parameters exposed as interactive controls
+- **Pre-loaded samples**: Quick start with included documents
+- **Session persistence**: Data persists across tabs during session
+
+For detailed usage instructions, see `learning_app/README.md`.
