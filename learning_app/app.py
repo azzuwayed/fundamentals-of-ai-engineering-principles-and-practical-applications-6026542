@@ -388,12 +388,15 @@ def plot_embedding_space_fn(method, dimensions):
         else:
             labels = [f"Doc {i+1}" for i in range(len(current_embeddings))]
 
+        # Normalize method name: "t-SNE" -> "tsne", "UMAP" -> "umap"
+        method_normalized = method.lower().replace("-", "")
+
         # Generate plot
         n_components = 3 if dimensions == "3D" else 2
         fig, timings = visualization_engine.plot_embedding_space(
             current_embeddings,
             labels=labels,
-            method=method.lower(),
+            method=method_normalized,
             n_components=n_components,
             title=f"Embedding Space ({method.upper()}, {dimensions})"
         )
