@@ -238,7 +238,13 @@ try:
     from utils.plot_helpers import create_plotly_config
     print("✓")
 
-    print("\n✓ All imports successful (including Phase 1 enhancements)")
+    print("  → Testing Phase 2 modules...", end=" ")
+    from modules.query_intelligence import QueryIntelligence
+    from modules.multi_query_engine import MultiQueryEngine
+    from modules.advanced_filtering import AdvancedFilter
+    print("✓")
+
+    print("\n✓ All imports successful (including Phase 1 & Phase 2 enhancements)")
     sys.exit(0)
 
 except Exception as e:

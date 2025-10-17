@@ -20,6 +20,9 @@ from modules.explainability_engine import (
     format_bm25_table,
     format_similarity_breakdown
 )
+from modules.query_intelligence import QueryIntelligence
+from modules.multi_query_engine import MultiQueryEngine
+from modules.advanced_filtering import AdvancedFilter, FilterConfig
 from utils import (
     format_results_table, format_metrics, format_document_preview,
     format_embedding_info, format_comparison_table,
@@ -39,6 +42,11 @@ visualization_engine = VisualizationEngine()
 explainability_engine = ExplainabilityEngine()
 current_embeddings = []  # Store embeddings for visualization
 current_model = None  # Current embedding model
+
+# Phase 2 Enhancement engines
+query_intelligence = QueryIntelligence()
+multi_query_engine = MultiQueryEngine(max_workers=4)
+advanced_filter = AdvancedFilter()
 
 
 # ============================================================================
@@ -531,6 +539,114 @@ def explain_vector_similarity_fn(query, document, model_name):
 
     except Exception as e:
         return f"Error: {str(e)}", ""
+
+
+# ============================================================================
+# TAB 7: ADVANCED RETRIEVAL (PHASE 2)
+# ============================================================================
+
+def analyze_query_intelligence_fn(query):
+    """Analyze query with intelligence engine."""
+    try:
+        is_valid, error = validate_text_input(query, min_length=3)
+        if not is_valid:
+            return f"Query error: {error}"
+
+        # Analyze query
+        analysis = query_intelligence.analyze_query(query)
+
+        # Format report
+        report_html = query_intelligence.format_analysis_report(analysis)
+
+        return report_html
+
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def execute_multi_query_fn(query, strategy, fusion_method, num_variations, top_k):
+    """Execute multi-query retrieval."""
+    global retrieval_pipeline
+
+    try:
+        if retrieval_pipeline is None:
+            return "", "Please set up the retrieval pipeline in the Hybrid Retrieval Studio tab first."
+
+        is_valid, error = validate_text_input(query, min_length=3)
+        if not is_valid:
+            return "", f"Query error: {error}"
+
+        # Create retrieval function wrapper
+        def retrieval_fn(q, k):
+            results, _, _ = retrieval_pipeline.retrieve_hybrid(q, top_k=k)
+            return results
+
+        # Execute multi-query
+        multi_result = multi_query_engine.execute_multi_query(
+            query=query,
+            retrieval_fn=retrieval_fn,
+            strategy=strategy.lower(),
+            fusion_method=fusion_method.lower().replace(' ', '_'),
+            num_variations=num_variations,
+            max_results_per_query=5,
+            top_k=top_k
+        )
+
+        # Format comparison table
+        comparison_html = multi_query_engine.format_comparison_table(multi_result)
+
+        # Format fused results
+        fused_results = format_results_table(multi_result.fused_results, show_content=True)
+
+        return comparison_html, fused_results
+
+    except Exception as e:
+        return "", f"Error: {str(e)}"
+
+
+def apply_advanced_filters_fn(
+    query,
+    top_k,
+    min_similarity,
+    enable_diversity,
+    diversity_threshold,
+    enable_mmr,
+    mmr_lambda
+):
+    """Apply advanced filtering to retrieval results."""
+    global retrieval_pipeline
+
+    try:
+        if retrieval_pipeline is None:
+            return "", "Please set up the retrieval pipeline in the Hybrid Retrieval Studio tab first."
+
+        is_valid, error = validate_text_input(query, min_length=3)
+        if not is_valid:
+            return "", f"Query error: {error}"
+
+        # Get initial results
+        results, _, timings = retrieval_pipeline.retrieve_hybrid(query, top_k=top_k*2)  # Get more for filtering
+
+        # Create filter config
+        config = FilterConfig(
+            min_similarity=min_similarity,
+            enable_diversity=enable_diversity,
+            diversity_threshold=diversity_threshold,
+            enable_mmr=enable_mmr,
+            mmr_lambda=mmr_lambda
+        )
+
+        # Apply filters
+        filtered_results = advanced_filter.apply_filters(results, config)[:top_k]
+
+        # Format outputs
+        filter_summary = advanced_filter.format_filter_summary(config)
+        filtered_results_table = format_results_table(filtered_results, show_content=True)
+
+        return filter_summary, filtered_results_table
+
+    except Exception as e:
+        return "", f"Error: {str(e)}"
 
 
 # ============================================================================
@@ -1031,12 +1147,177 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
                     - **Use Case**: Understand semantic similarity at vector level
                     """)
 
+        # ====================================================================
+        # TAB 7: ADVANCED RETRIEVAL
+        # ====================================================================
+        with gr.Tab("7. 🎯 Advanced Retrieval"):
+            gr.Markdown("## Advanced Retrieval (Phase 2 Enhancements)\nIntelligent query handling, multi-query search, and advanced filtering")
+
+            with gr.Tabs():
+                # Sub-tab: Query Intelligence
+                with gr.Tab("Query Intelligence"):
+                    gr.Markdown("### Intelligent Query Analysis")
+
+                    with gr.Row():
+                        with gr.Column():
+                            qi_query = gr.Textbox(
+                                label="Enter Query",
+                                placeholder="Type your search query...",
+                                lines=3
+                            )
+                            qi_analyze_btn = gr.Button("Analyze Query", variant="primary")
+
+                        with gr.Column():
+                            qi_report = gr.HTML(label="Analysis Report")
+
+                    qi_analyze_btn.click(
+                        analyze_query_intelligence_fn,
+                        inputs=[qi_query],
+                        outputs=[qi_report]
+                    )
+
+                    gr.Markdown("""
+                    **About Query Intelligence:**
+                    - **Intent Classification**: Factual, conceptual, exploratory, or comparison
+                    - **Complexity Scoring**: Assess query difficulty (0-1 scale)
+                    - **Keyword Extraction**: Identify meaningful terms
+                    - **Auto-Suggestions**: Get query improvement recommendations
+                    - **Term Expansion**: See semantic expansions for keywords
+                    - **Use Case**: Understand and optimize your search queries
+                    """)
+
+                # Sub-tab: Multi-Query Search
+                with gr.Tab("Multi-Query Search"):
+                    gr.Markdown("### Parallel Query Execution with Result Fusion")
+
+                    with gr.Row():
+                        with gr.Column():
+                            mq_query = gr.Textbox(
+                                label="Original Query",
+                                placeholder="Enter complex query...",
+                                lines=3
+                            )
+                            mq_strategy = gr.Radio(
+                                choices=["Decompose", "Expand", "Rephrase", "Hybrid"],
+                                value="Hybrid",
+                                label="Query Strategy"
+                            )
+                            mq_fusion = gr.Radio(
+                                choices=["Weighted Voting", "Round Robin", "Score Aggregation"],
+                                value="Weighted Voting",
+                                label="Fusion Method"
+                            )
+                            with gr.Row():
+                                mq_num_variations = gr.Slider(
+                                    minimum=2, maximum=5, value=3, step=1,
+                                    label="Number of Query Variations"
+                                )
+                                mq_top_k = gr.Slider(
+                                    minimum=1, maximum=10, value=5, step=1,
+                                    label="Final Results"
+                                )
+                            mq_execute_btn = gr.Button("Execute Multi-Query", variant="primary")
+
+                    with gr.Row():
+                        with gr.Column():
+                            mq_comparison = gr.HTML(label="Query Variations & Metrics")
+                        with gr.Column():
+                            mq_results = gr.Textbox(label="Fused Results", lines=20)
+
+                    mq_execute_btn.click(
+                        execute_multi_query_fn,
+                        inputs=[mq_query, mq_strategy, mq_fusion, mq_num_variations, mq_top_k],
+                        outputs=[mq_comparison, mq_results]
+                    )
+
+                    gr.Markdown("""
+                    **About Multi-Query Search:**
+                    - **Query Decompose**: Break complex query into sub-queries
+                    - **Query Expand**: Add context and synonyms
+                    - **Query Rephrase**: Generate alternative formulations
+                    - **Hybrid Strategy**: Mix all approaches
+                    - **Parallel Execution**: Run all queries concurrently
+                    - **Result Fusion**: Intelligently merge results
+                    - **Weighted Voting**: Rank-based fusion (recommended)
+                    - **Use Case**: Improve recall and coverage for complex queries
+                    """)
+
+                # Sub-tab: Context & Filtering
+                with gr.Tab("Context & Filtering"):
+                    gr.Markdown("### Advanced Result Filtering & Optimization")
+
+                    with gr.Row():
+                        with gr.Column():
+                            af_query = gr.Textbox(
+                                label="Query",
+                                placeholder="Enter your query...",
+                                lines=2
+                            )
+                            af_top_k = gr.Slider(
+                                minimum=1, maximum=20, value=5, step=1,
+                                label="Number of Results"
+                            )
+                            af_min_similarity = gr.Slider(
+                                minimum=0.0, maximum=1.0, value=0.5, step=0.05,
+                                label="Minimum Similarity Threshold"
+                            )
+
+                            gr.Markdown("**Diversity Controls:**")
+                            af_enable_diversity = gr.Checkbox(
+                                label="Enable Diversity Filter",
+                                value=False
+                            )
+                            af_diversity_threshold = gr.Slider(
+                                minimum=0.5, maximum=1.0, value=0.7, step=0.05,
+                                label="Diversity Threshold (max similarity between results)"
+                            )
+
+                            gr.Markdown("**Maximal Marginal Relevance (MMR):**")
+                            af_enable_mmr = gr.Checkbox(
+                                label="Enable MMR",
+                                value=False
+                            )
+                            af_mmr_lambda = gr.Slider(
+                                minimum=0.0, maximum=1.0, value=0.5, step=0.1,
+                                label="MMR Lambda (1.0 = pure relevance, 0.0 = pure diversity)"
+                            )
+
+                            af_apply_btn = gr.Button("Apply Filters", variant="primary")
+
+                        with gr.Column():
+                            af_summary = gr.HTML(label="Active Filters")
+                            af_results = gr.Textbox(label="Filtered Results", lines=20)
+
+                    af_apply_btn.click(
+                        apply_advanced_filters_fn,
+                        inputs=[
+                            af_query, af_top_k, af_min_similarity,
+                            af_enable_diversity, af_diversity_threshold,
+                            af_enable_mmr, af_mmr_lambda
+                        ],
+                        outputs=[af_summary, af_results]
+                    )
+
+                    gr.Markdown("""
+                    **About Advanced Filtering:**
+                    - **Similarity Threshold**: Filter out low-relevance results
+                    - **Diversity Filter**: Remove redundant/similar results
+                    - **MMR (Maximal Marginal Relevance)**: Balance relevance vs diversity
+                      - λ = 1.0: Only relevance (standard ranking)
+                      - λ = 0.5: Balanced (recommended)
+                      - λ = 0.0: Maximum diversity (variety over relevance)
+                    - **Use Cases**:
+                      - Diversity: Exploratory research, avoiding redundancy
+                      - MMR: Production systems balancing quality and coverage
+                      - Threshold: Quality control for sensitive applications
+                    """)
+
     gr.Markdown("""
     ---
     ### About This App
     Built for the LinkedIn Learning course: *Fundamentals of AI Engineering*
 
-    Explore document processing → embeddings → vector search → hybrid retrieval → visualization → explainability
+    Explore document processing → embeddings → vector search → hybrid retrieval → visualization → explainability → advanced retrieval
     """)
 
 

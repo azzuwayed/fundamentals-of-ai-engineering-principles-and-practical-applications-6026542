@@ -151,6 +151,12 @@ A comprehensive Gradio-based web application that provides hands-on experimentat
    - Vector similarity component analysis
    - Understand retrieval decision-making process
 
+7. **🎯 Advanced Retrieval** (Phase 2 Enhancement)
+   - **Query Intelligence**: Analyze query intent, complexity, and get optimization suggestions
+   - **Multi-Query Search**: Decompose complex queries, execute parallel searches, fuse results
+   - **Context & Filtering**: Apply metadata filters, similarity thresholds, diversity controls, and MMR
+   - Production-quality retrieval optimization techniques
+
 ### Running the App
 
 **Quick Start (Recommended):**
@@ -195,7 +201,7 @@ python app.py
 
 ```
 learning_app/
-├── app.py                       # Main Gradio application (6 tabs)
+├── app.py                       # Main Gradio application (7 tabs)
 ├── run.sh                       # Automated launch script with verification
 ├── modules/                     # Core functionality
 │   ├── document_processor.py    # Document extraction & chunking
@@ -203,12 +209,16 @@ learning_app/
 │   ├── vector_store.py          # ChromaDB operations
 │   ├── retrieval_pipeline.py    # BM25, vector, hybrid retrieval
 │   ├── visualization_engine.py  # Phase 1: UMAP/t-SNE, heatmaps
-│   └── explainability_engine.py # Phase 1: Token/BM25/vector analysis
+│   ├── explainability_engine.py # Phase 1: Token/BM25/vector analysis
+│   ├── query_intelligence.py    # Phase 2: Query analysis & optimization
+│   ├── multi_query_engine.py    # Phase 2: Multi-query & result fusion
+│   └── advanced_filtering.py    # Phase 2: Metadata filters & MMR
 ├── utils/                       # Helper functions
 │   ├── formatters.py            # Output formatting
 │   ├── validators.py            # Input validation
 │   └── plot_helpers.py          # Phase 1: Plotly utilities
 ├── test_enhancements.py         # Phase 1: Test suite
+├── test_phase2.py               # Phase 2: Test suite
 └── data/
     ├── preloaded/               # Sample documents (from doc_samples/)
     └── uploads/                 # User-uploaded files
@@ -234,12 +244,43 @@ cd learning_app
 python test_enhancements.py  # Run Phase 1 test suite
 ```
 
+### Phase 2 Enhancements
+
+**New Modules:**
+- `query_intelligence.py` - Query analysis, intent classification, complexity scoring
+- `multi_query_engine.py` - Multi-query execution with parallel processing and result fusion
+- `advanced_filtering.py` - Metadata filters, similarity thresholds, diversity controls, MMR
+
+**New Capabilities:**
+- **Query Intelligence**: Intent classification (factual/conceptual/exploratory/comparison), complexity scoring, keyword extraction, term expansion, optimization suggestions
+- **Multi-Query Strategies**: Query decomposition, expansion, rephrasing, hybrid approach
+- **Parallel Execution**: ThreadPoolExecutor-based concurrent query execution
+- **Result Fusion**: Weighted voting (rank-based), round robin, score aggregation
+- **Advanced Filtering**: Document type/category/source filters, date range filtering, similarity thresholds
+- **Diversity Controls**: Remove redundant results based on text similarity
+- **MMR (Maximal Marginal Relevance)**: Balance relevance vs diversity with λ parameter
+- **Production Patterns**: Enterprise-grade retrieval optimization techniques
+
+**Key Algorithms:**
+- **Intent Classification**: Pattern-based classification with confidence scoring
+- **Query Decomposition**: Template-based sub-query generation
+- **Weighted Voting Fusion**: Rank-based scoring (score = 1/(rank+1), higher is better)
+- **MMR Formula**: λ * Relevance - (1-λ) * max Similarity (supports text and embedding-based)
+- **Diversity Filtering**: Jaccard similarity for text-based redundancy detection
+
+**Testing:**
+```bash
+cd learning_app
+python test_phase2.py  # Run Phase 2 test suite
+```
+
 ### Usage Notes
 
-- **Progressive learning**: Tabs are ordered logically (1→2→3→4→5→6)
+- **Progressive learning**: Tabs are ordered logically (1→2→3→4→5→6→7)
 - **Document flow**: Process documents in Tab 1, then use in other tabs
 - **Visualization workflow**: Tab 1 → Tab 5 (generate embeddings first)
 - **Explainability workflow**: Use any query/document pair in Tab 6
+- **Advanced retrieval workflow**: Tab 1 (process docs) → Tab 7 (optimize queries and filter results)
 - **Parameter experimentation**: All key parameters exposed as interactive controls
 - **Pre-loaded samples**: Quick start with included documents
 - **Session persistence**: Data persists across tabs during session

@@ -140,6 +140,31 @@ python app.py
   - Understand semantic vs lexical matching
   - Learn how retrieval algorithms work
 
+#### 7. 🎯 Advanced Retrieval (Phase 2 Enhancement)
+
+- **Purpose**: Intelligent query handling and result optimization
+- **Sub-tabs**:
+  - **Query Intelligence**: Analyze query intent, complexity, and get optimization suggestions
+  - **Multi-Query Search**: Decompose complex queries and execute parallel searches with result fusion
+  - **Context & Filtering**: Apply advanced filters including MMR (Maximal Marginal Relevance)
+- **Features**:
+  - **Intent Classification**: Factual, conceptual, exploratory, comparison
+  - **Query Decomposition**: Break complex queries into sub-queries
+  - **Query Expansion**: Add synonyms and context
+  - **Query Rephrasing**: Generate alternative formulations
+  - **Parallel Execution**: Run multiple query variations concurrently
+  - **Result Fusion**: Weighted voting, round robin, score aggregation
+  - **MMR**: Balance relevance vs diversity
+  - **Diversity Filtering**: Remove redundant results
+- **Key Parameters**:
+  - Query strategy: Decompose, expand, rephrase, hybrid
+  - Fusion method: Weighted voting (recommended), round robin, score aggregation
+  - MMR lambda: 1.0 (pure relevance) to 0.0 (pure diversity)
+- **Use Cases**:
+  - Complex queries needing better coverage
+  - Production systems requiring quality + diversity
+  - Exploratory research avoiding redundancy
+
 ## Parameter Guide
 
 ### Document Processing
