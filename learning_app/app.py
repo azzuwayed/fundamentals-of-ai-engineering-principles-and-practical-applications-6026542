@@ -1463,7 +1463,7 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
 
                     # Model selection (conditional on backend)
                     llm_model = gr.Dropdown(
-                        choices=["distilgpt2", "gpt2"],
+                        choices=LLMManager.get_available_models("local"),
                         value="distilgpt2",
                         label="Model"
                     )
@@ -1525,15 +1525,18 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
             # Callbacks
             def update_model_choices(backend):
                 """Update model dropdown based on backend."""
+                backend_key = backend.lower()
+                models = LLMManager.get_available_models(backend_key)
+
                 if backend == "Local":
                     return gr.Dropdown(
-                        choices=["distilgpt2", "gpt2", "gpt2-medium"],
-                        value="distilgpt2"
+                        choices=models,
+                        value=models[0] if models else "distilgpt2"
                     )
                 else:  # OpenAI
                     return gr.Dropdown(
-                        choices=["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"],
-                        value="gpt-3.5-turbo"
+                        choices=models,
+                        value="gpt-4o-mini" if "gpt-4o-mini" in models else models[0]
                     )
 
             llm_backend.change(
@@ -1577,7 +1580,11 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
 
             **LLM Backend Options:**
             - **Local (DistilGPT2)**: Fast, free, works offline, educational quality
-            - **OpenAI (GPT-3.5/4)**: High quality, requires API key, costs money
+            - **OpenAI (Latest 2025 models)**:
+              - GPT-4o/GPT-4o-mini: 128K context, most cost-effective
+              - GPT-4.1/GPT-4.1-mini: 1M context window!
+              - o3-pro/o4-mini: Advanced reasoning models
+              - Requires API key, costs per token
 
             **Educational Focus:**
             - Expand "RAG Process Viewer" to see each step
@@ -1594,7 +1601,8 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
 
             **For OpenAI API:**
             - Set environment variable: `OPENAI_API_KEY=your-key-here`
-            - Costs money per token (~$0.001-0.03 per 1K tokens)
+            - Pricing (2025): GPT-4o-mini from $0.15/1M tokens (most cost-effective)
+            - GPT-4.1 offers 1M token context window for complex RAG scenarios
             - Higher quality responses than local models
             """)
 

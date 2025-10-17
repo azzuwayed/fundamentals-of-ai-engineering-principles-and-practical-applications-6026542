@@ -4,10 +4,11 @@ Handles hybrid retrieval with BM25, vector search, and reranking.
 """
 import time
 from typing import List, Dict, Optional, Tuple
-from llama_index.core import Document, VectorStoreIndex
+from llama_index.core import Document, VectorStoreIndex, Settings
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from sentence_transformers import CrossEncoder
 import numpy as np
 
@@ -29,6 +30,11 @@ class RetrievalPipeline:
         # Chunk documents
         splitter = SentenceSplitter(chunk_size=chunk_size)
         self.nodes = splitter.get_nodes_from_documents(self.documents)
+
+        # Configure local embeddings to avoid OpenAI dependency
+        Settings.embed_model = HuggingFaceEmbedding(
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
 
         # Initialize BM25 retriever
         self.bm25_retriever = BM25Retriever.from_defaults(

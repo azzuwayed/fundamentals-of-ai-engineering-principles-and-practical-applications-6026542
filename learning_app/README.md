@@ -171,9 +171,10 @@ python app.py
 
 - **Purpose**: Interactive conversational RAG (Retrieval-Augmented Generation) system
 - **Features**:
-  - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-3.5, GPT-4)
+  - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-4o, GPT-4.1, o3-pro, o4-mini)
+  - **Latest Models**: GPT-4.1 with 1M token context window, GPT-4o-mini most cost-effective
   - **Conversation History**: Multi-turn conversations with automatic pruning
-  - **Token Budget Management**: Smart allocation of context window
+  - **Token Budget Management**: Smart allocation of context window (up to 1M tokens!)
   - **Educational Process Viewer**: See the 6-step RAG process transparently
   - **Source Attribution**: Citations for every response
 - **Actions**:

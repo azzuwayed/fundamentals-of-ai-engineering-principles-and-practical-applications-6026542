@@ -24,8 +24,8 @@ chromadb==0.6.3
 sentence-transformers==4.0.2
 accelerate==1.6.0
 
-# This is a slow dependency to install, even with uv. We install it live in the notebook that uses it
-# llama-index-embeddings-huggingface==0.5.2
+# LlamaIndex embeddings (required for retrieval pipeline in learning app)
+llama-index-embeddings-huggingface==0.5.2
 
 # Azure AI Inference
 # azure-ai-inference==1.0.0b9

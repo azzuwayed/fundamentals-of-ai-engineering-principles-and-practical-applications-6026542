@@ -3,7 +3,7 @@ LLM Manager Module for RAG Chat.
 
 Provides multiple LLM backend support with unified interface:
 - LocalLLM: CPU-friendly DistilGPT2 (educational, no API costs)
-- OpenAILLM: GPT-3.5/GPT-4 (high quality, requires API key)
+- OpenAILLM: Latest GPT-4o, GPT-4.1, and reasoning models (high quality, requires API key)
 
 Includes token counting and budget management for educational purposes.
 """
@@ -328,8 +328,10 @@ class OpenAILLM(LLM):
         try:
             import tiktoken
 
-            # Get encoding for model
-            if "gpt-4" in self.model_name:
+            # Get encoding for model (use cl100k_base for GPT-4o, GPT-4.1, o-series)
+            if "gpt-4o" in self.model_name or "gpt-4.1" in self.model_name or "o3" in self.model_name or "o4" in self.model_name:
+                encoding = tiktoken.get_encoding("cl100k_base")
+            elif "gpt-4" in self.model_name:
                 encoding = tiktoken.encoding_for_model("gpt-4")
             elif "gpt-3.5" in self.model_name:
                 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
@@ -345,18 +347,25 @@ class OpenAILLM(LLM):
     def get_model_info(self) -> Dict:
         """Get OpenAI model information."""
         context_windows = {
-            "gpt-3.5-turbo": 4096,
-            "gpt-3.5-turbo-16k": 16384,
+            # Legacy models (for backward compatibility)
+            "gpt-3.5-turbo": 16385,
             "gpt-4": 8192,
             "gpt-4-32k": 32768,
             "gpt-4-turbo": 128000,
-            "gpt-4o": 128000
+            # Current models (2025)
+            "gpt-4o": 128000,
+            "gpt-4o-mini": 128000,
+            "gpt-4.1": 1000000,  # 1M context!
+            "gpt-4.1-mini": 1000000,
+            # Reasoning models
+            "o3-pro": 200000,
+            "o4-mini": 128000
         }
 
         return {
             "name": self.model_name,
             "backend": "openai",
-            "context_window": context_windows.get(self.model_name, 4096),
+            "context_window": context_windows.get(self.model_name, 128000),
             "api_configured": self._client is not None,
             "provider": "OpenAI"
         }
@@ -418,11 +427,11 @@ class LLMManager:
             },
             {
                 "id": "openai",
-                "name": "OpenAI (GPT-3.5/GPT-4)",
-                "description": "High quality, requires API key and credits",
+                "name": "OpenAI (GPT-4o/GPT-4.1/o3-pro)",
+                "description": "Latest models with huge context (up to 1M tokens), requires API key",
                 "requires_api_key": True,
                 "quality": "Excellent",
-                "speed": "Medium"
+                "speed": "Fast"
             }
         ]
 
@@ -442,11 +451,18 @@ class LLMManager:
 
         elif backend == "openai":
             return [
-                "gpt-3.5-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-4",
-                "gpt-4-turbo",
-                "gpt-4o"
+                # Recommended models (2025)
+                "gpt-4o",              # Best overall - 128K context
+                "gpt-4o-mini",         # Most cost-effective - 128K context
+                "gpt-4.1",             # Newest with 1M context!
+                "gpt-4.1-mini",        # Efficient with 1M context
+                # Reasoning models
+                "o3-pro",              # Advanced reasoning - 200K context
+                "o4-mini",             # Fast reasoning - 128K context
+                # Legacy (backward compatibility)
+                "gpt-3.5-turbo",       # Legacy - being phased out
+                "gpt-4",               # Legacy GPT-4
+                "gpt-4-turbo"          # Legacy Turbo
             ]
 
         else:
