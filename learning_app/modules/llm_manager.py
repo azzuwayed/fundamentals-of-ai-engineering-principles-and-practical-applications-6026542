@@ -699,11 +699,17 @@ class LLMManager:
         Args:
             backend: "local", "ollama", or "openai"
             model_name: Model name (optional, uses defaults)
+                       Can include size info like "model (X.X GB)" which will be stripped
             **kwargs: Additional backend-specific arguments
 
         Returns:
             LLM instance
         """
+        # Strip size info from model name if present
+        # Formats: "model (X.X GB)" or "model (XXM params, X.X GB)"
+        if model_name and " (" in model_name:
+            model_name = model_name.split(" (")[0]
+
         if backend == "local":
             model_name = model_name or "distilgpt2"
             return LocalLLM(model_name=model_name, **kwargs)

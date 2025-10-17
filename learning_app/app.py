@@ -684,14 +684,10 @@ def initialize_rag_chat_fn(backend, model_name):
         if retrieval_pipeline is None:
             return "⚠️ Please set up the retrieval pipeline in the Hybrid Retrieval Studio tab first.", "", ""
 
-        # Strip size info from model name if present
-        # Formats: "model (X.X GB)" or "model (XXM params, X.X GB)"
-        clean_model_name = model_name.split(" (")[0] if model_name and " (" in model_name else model_name
-
-        # Create LLM
+        # Create LLM (factory handles size info stripping automatically)
         current_llm = LLMManager.create_llm(
             backend=backend.lower(),
-            model_name=clean_model_name if clean_model_name else None
+            model_name=model_name
         )
 
         # Get model info
