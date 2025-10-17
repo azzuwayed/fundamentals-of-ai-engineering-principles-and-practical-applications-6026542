@@ -141,16 +141,40 @@ A comprehensive Gradio-based web application that provides hands-on experimentat
 
 ### Running the App
 
+**Quick Start (Recommended):**
 ```bash
-# Install dependencies (if not already installed)
+# Automated setup and launch with comprehensive verification
+cd learning_app
+./run.sh
+
+# Open browser to http://localhost:7860
+```
+
+The `run.sh` script automatically:
+- ✓ Checks Python 3.12+ installation
+- ✓ Verifies/installs `uv` package manager
+- ✓ Creates/activates virtual environment
+- ✓ Installs/updates all dependencies
+- ✓ Validates Gradio 5.49.1 installation
+- ✓ Tests all module imports
+- ✓ Checks port availability (auto-switches if needed)
+- ✓ Launches the application
+
+**Advanced Options:**
+```bash
+./run.sh --help                    # Show all options
+./run.sh --force-reinstall         # Force reinstall dependencies
+./run.sh --port 8080               # Run on custom port
+```
+
+**Manual Setup (Alternative):**
+```bash
+# Install dependencies
 uv pip install -r requirements.txt
 
 # Launch the app
 cd learning_app
 python app.py
-
-# Open browser to http://localhost:7860
-# In GitHub Codespaces: Check PORTS tab for forwarded URL
 ```
 
 **Note:** Uses Gradio 5.49.1 with server-side rendering for improved performance and modern UI.
@@ -160,6 +184,7 @@ python app.py
 ```
 learning_app/
 ├── app.py                    # Main Gradio application
+├── run.sh                    # Automated launch script with verification
 ├── modules/                  # Core functionality
 │   ├── document_processor.py # Document extraction & chunking
 │   ├── embeddings_engine.py  # Embedding generation & similarity
