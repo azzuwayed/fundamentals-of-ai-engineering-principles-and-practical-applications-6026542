@@ -307,11 +307,11 @@ class ContextManager:
         truncated = allocation_stats["truncated"]
 
         html = f"""
-        <div style="font-family: sans-serif; padding: 15px; background: #f9fafb; border-radius: 8px;">
+        <div style="font-family: sans-serif; padding: 15px; background: var(--block-background-fill); border: 1px solid var(--border-color-primary); border-radius: 8px;">
             <h4 style="margin-top: 0;">📊 Token Budget Allocation</h4>
 
             <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                <tr style="background: #e5e7eb; font-weight: bold;">
+                <tr style="background: var(--background-fill-secondary); font-weight: bold;">
                     <th style="padding: 8px; text-align: left;">Component</th>
                     <th style="padding: 8px; text-align: right;">Original</th>
                     <th style="padding: 8px; text-align: right;">Budget</th>
@@ -325,7 +325,7 @@ class ContextManager:
                     <td style="padding: 8px; text-align: right;">{final['system']:,}</td>
                     <td style="padding: 8px;">{self._status_badge(orig['system'], budget['system'])}</td>
                 </tr>
-                <tr style="background: #f3f4f6;">
+                <tr style="background: var(--background-fill-secondary);">
                     <td style="padding: 8px;">RAG Context</td>
                     <td style="padding: 8px; text-align: right;">{orig['context']:,}</td>
                     <td style="padding: 8px; text-align: right;">{budget['context']:,}</td>
@@ -339,7 +339,7 @@ class ContextManager:
                     <td style="padding: 8px; text-align: right;">{final['history']:,}</td>
                     <td style="padding: 8px;">{self._status_badge(orig['history'], budget['history'])}</td>
                 </tr>
-                <tr style="background: #e5e7eb; font-weight: bold;">
+                <tr style="background: var(--background-fill-secondary); font-weight: bold;">
                     <td style="padding: 8px;">Total Input</td>
                     <td style="padding: 8px; text-align: right;">{orig['total']:,}</td>
                     <td style="padding: 8px; text-align: right;">{budget['system'] + budget['context'] + budget['history']:,}</td>
@@ -348,12 +348,12 @@ class ContextManager:
                 </tr>
             </table>
 
-            <div style="margin-top: 10px; padding: 10px; background: {'#fef3c7' if truncated else '#d1fae5'}; border-radius: 5px;">
+            <div style="margin-top: 10px; padding: 10px; background: {'rgba(251, 191, 36, 0.2)' if truncated else 'rgba(34, 197, 94, 0.2)'}; border-radius: 5px;">
                 <strong>{'⚠️ Truncation Applied' if truncated else '✓ Fits within budget'}</strong>
                 {f"<br><small>Truncated: {', '.join(allocation_stats['truncation_details'])}</small>" if truncated else ""}
             </div>
 
-            <div style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
+            <div style="margin-top: 10px; font-size: 0.9em; opacity: 0.8;">
                 <strong>Context Window:</strong> {self.context_window:,} tokens<br>
                 <strong>Available for generation:</strong> {self.budget.generation_tokens:,} tokens<br>
                 <strong>Remaining budget:</strong> {self.context_window - final['total'] - self.budget.generation_tokens:,} tokens
@@ -366,9 +366,9 @@ class ContextManager:
     def _status_badge(self, original: int, budget: int) -> str:
         """Generate status badge HTML."""
         if original <= budget:
-            return '<span style="color: #059669;">✓ OK</span>'
+            return '<span style="color: rgb(34, 197, 94);">✓ OK</span>'
         else:
-            return '<span style="color: #d97706;">⚠ Truncated</span>'
+            return '<span style="color: rgb(251, 191, 36);">⚠ Truncated</span>'
 
     def get_budget_info(self) -> Dict:
         """

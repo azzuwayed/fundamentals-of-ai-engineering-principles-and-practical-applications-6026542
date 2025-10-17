@@ -519,7 +519,7 @@ class AdvancedFilter:
             HTML summary string
         """
         html = """
-        <div style="font-family: sans-serif; padding: 15px; background: #f9fafb; border-radius: 8px;">
+        <div style="font-family: sans-serif; padding: 15px; background: var(--block-background-fill); border: 1px solid var(--border-color-primary); border-radius: 8px;">
             <h4 style="margin-top: 0;">⚙️ Active Filters</h4>
         """
 

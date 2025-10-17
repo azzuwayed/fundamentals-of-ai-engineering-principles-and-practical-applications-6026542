@@ -448,23 +448,23 @@ Context documents will be provided below."""
         """
         html = """
         <div style="font-family: sans-serif;">
-            <h3 style="color: #1f2937;">🔄 RAG Process Breakdown</h3>
+            <h3>🔄 RAG Process Breakdown</h3>
         """
 
         # Add each step
         for step in result.steps:
             html += f"""
-            <div style="margin: 15px 0; padding: 15px; background: #f3f4f6; border-left: 4px solid #3b82f6; border-radius: 4px;">
+            <div style="margin: 15px 0; padding: 15px; background: var(--block-background-fill); border-left: 4px solid rgba(59, 130, 246, 0.6); border-radius: 4px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <div>
-                        <strong style="color: #1f2937;">Step {step.step_number}: {step.name}</strong>
-                        <div style="color: #6b7280; font-size: 0.9em;">{step.description}</div>
+                        <strong>Step {step.step_number}: {step.name}</strong>
+                        <div style="opacity: 0.7; font-size: 0.9em;">{step.description}</div>
                     </div>
-                    <div style="color: #6b7280; font-size: 0.85em;">
+                    <div style="opacity: 0.7; font-size: 0.85em;">
                         {step.duration_ms:.1f}ms
                     </div>
                 </div>
-                <div style="background: white; padding: 10px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
+                <div style="background: var(--background-fill-secondary); padding: 10px; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; max-height: 300px; overflow-y: auto;">
                     {step.content}
                 </div>
             </div>
@@ -472,7 +472,7 @@ Context documents will be provided below."""
 
         # Add summary
         html += f"""
-            <div style="margin-top: 20px; padding: 15px; background: #dbeafe; border-radius: 8px;">
+            <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px;">
                 <strong>⏱️ Total Duration:</strong> {result.total_duration_ms:.1f}ms<br>
                 <strong>🎯 Tokens Used:</strong> {result.tokens_used:,}<br>
                 <strong>📚 Sources:</strong> {len(result.sources)}<br>

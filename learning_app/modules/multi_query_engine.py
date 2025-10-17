@@ -581,10 +581,10 @@ class MultiQueryEngine:
             <h3>🔍 Multi-Query Comparison</h3>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <thead>
-                    <tr style="background: #f3f4f6; text-align: left;">
-                        <th style="padding: 12px; border: 1px solid #e5e7eb;">Query Variation</th>
-                        <th style="padding: 12px; border: 1px solid #e5e7eb;">Type</th>
-                        <th style="padding: 12px; border: 1px solid #e5e7eb;">Results</th>
+                    <tr style="background: var(--background-fill-secondary); text-align: left;">
+                        <th style="padding: 12px; border: 1px solid var(--border-color-primary);">Query Variation</th>
+                        <th style="padding: 12px; border: 1px solid var(--border-color-primary);">Type</th>
+                        <th style="padding: 12px; border: 1px solid var(--border-color-primary);">Results</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -600,7 +600,7 @@ class MultiQueryEngine:
             badge_color = type_badge_colors.get(variation.variation_type, '#6b7280')
 
             html += f"""
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <tr style="border-bottom: 1px solid var(--border-color-primary);">
                         <td style="padding: 12px;">{variation.variation}</td>
                         <td style="padding: 12px;">
                             <span style="background: {badge_color}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">
@@ -615,7 +615,7 @@ class MultiQueryEngine:
                 </tbody>
             </table>
 
-            <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
+            <div style="background: var(--block-background-fill); border: 1px solid var(--border-color-primary); padding: 15px; border-radius: 6px;">
                 <h4 style="margin-top: 0;">📊 Execution Metrics</h4>
                 <table style="width: 100%; border-collapse: collapse;">
         """
@@ -632,7 +632,7 @@ class MultiQueryEngine:
 
         for label, value in metric_rows:
             html += f"""
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <tr style="border-bottom: 1px solid var(--border-color-primary);">
                         <td style="padding: 8px 0;">{label}</td>
                         <td style="padding: 8px 0; text-align: right; font-weight: 600;">{value}</td>
                     </tr>

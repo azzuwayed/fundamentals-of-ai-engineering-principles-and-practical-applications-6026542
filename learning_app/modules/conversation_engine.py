@@ -152,22 +152,22 @@ class ConversationEngine:
             HTML string for display in Gradio
         """
         if not self.messages:
-            return "<div style='color: #9ca3af; font-style: italic;'>No messages yet. Start a conversation!</div>"
+            return "<div style='opacity: 0.6; font-style: italic;'>No messages yet. Start a conversation!</div>"
 
         html_parts = []
         for msg in self.messages:
             if msg.role == "user":
                 html_parts.append(f"""
-                <div style="margin: 10px 0; padding: 12px; background: #eff6ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
-                    <div style="font-weight: bold; color: #1e40af; margin-bottom: 5px;">👤 You</div>
-                    <div style="color: #1f2937;">{self._escape_html(msg.content)}</div>
+                <div style="margin: 10px 0; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid rgba(59, 130, 246, 0.6); border-radius: 4px;">
+                    <div style="font-weight: bold; opacity: 0.9; margin-bottom: 5px;">👤 You</div>
+                    <div>{self._escape_html(msg.content)}</div>
                 </div>
                 """)
             else:
                 html_parts.append(f"""
-                <div style="margin: 10px 0; padding: 12px; background: #f3f4f6; border-left: 4px solid #6b7280; border-radius: 4px;">
-                    <div style="font-weight: bold; color: #374151; margin-bottom: 5px;">🤖 Assistant</div>
-                    <div style="color: #1f2937; white-space: pre-wrap;">{self._escape_html(msg.content)}</div>
+                <div style="margin: 10px 0; padding: 12px; background: var(--block-background-fill); border-left: 4px solid var(--border-color-primary); border-radius: 4px;">
+                    <div style="font-weight: bold; opacity: 0.9; margin-bottom: 5px;">🤖 Assistant</div>
+                    <div style="white-space: pre-wrap;">{self._escape_html(msg.content)}</div>
                     {self._format_sources(msg.metadata.get('sources', []))}
                 </div>
                 """)
@@ -179,14 +179,14 @@ class ConversationEngine:
         if not sources:
             return ""
 
-        html = "<div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid #d1d5db;'>"
-        html += "<div style='font-size: 0.85em; color: #6b7280; margin-bottom: 5px;'>📚 Sources:</div>"
+        html = "<div style='margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color-primary);'>"
+        html += "<div style='font-size: 0.85em; opacity: 0.7; margin-bottom: 5px;'>📚 Sources:</div>"
 
         for src in sources:
             score = src.get('score', 0.0)
             text_preview = src.get('text', '')[:100]
             html += f"""
-            <div style='font-size: 0.8em; color: #6b7280; margin-left: 15px; margin-bottom: 3px;'>
+            <div style='font-size: 0.8em; opacity: 0.7; margin-left: 15px; margin-bottom: 3px;'>
                 • [{src.get('id', '?')}] (Score: {score:.3f}) {text_preview}...
             </div>
             """
@@ -239,9 +239,9 @@ class ConversationEngine:
         stats = self.get_stats()
 
         html = f"""
-        <div style="font-family: sans-serif; padding: 12px; background: #f9fafb; border-radius: 8px; font-size: 0.9em;">
+        <div style="font-family: sans-serif; padding: 12px; background: var(--block-background-fill); border: 1px solid var(--border-color-primary); border-radius: 8px; font-size: 0.9em;">
             <strong>📊 Conversation Stats</strong>
-            <div style="margin-top: 8px; color: #6b7280;">
+            <div style="margin-top: 8px; opacity: 0.8;">
                 <div>💬 Total messages: {stats['total_messages']}</div>
                 <div>🔄 Turns: {stats['turns']}</div>
                 <div>👤 Your messages: {stats['user_messages']}</div>

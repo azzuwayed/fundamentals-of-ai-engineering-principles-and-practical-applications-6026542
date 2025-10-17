@@ -438,7 +438,7 @@ class QueryIntelligence:
             complexity_label = 'Complex'
 
         html = f"""
-        <div style="font-family: sans-serif; padding: 20px; background: #f9fafb; border-radius: 8px;">
+        <div style="font-family: sans-serif; padding: 20px; background: var(--block-background-fill); border: 1px solid var(--border-color-primary); border-radius: 8px;">
             <h3 style="margin-top: 0;">📊 Query Analysis Report</h3>
 
             <div style="display: flex; gap: 10px; margin-bottom: 20px;">
@@ -450,25 +450,25 @@ class QueryIntelligence:
                 </span>
             </div>
 
-            <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="margin-top: 0; color: #374151;">Keywords Extracted</h4>
+            <div style="background: var(--background-fill-secondary); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="margin-top: 0;">Keywords Extracted</h4>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    {''.join(f'<span style="background: #e5e7eb; padding: 4px 10px; border-radius: 4px; font-size: 14px;">{kw}</span>' for kw in analysis.keywords)}
+                    {''.join(f'<span style="background: var(--block-background-fill); padding: 4px 10px; border-radius: 4px; font-size: 14px; border: 1px solid var(--border-color-primary);">{kw}</span>' for kw in analysis.keywords)}
                 </div>
             </div>
 
-            <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                <h4 style="margin-top: 0; color: #374151;">Metrics</h4>
+            <div style="background: var(--background-fill-secondary); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                <h4 style="margin-top: 0;">Metrics</h4>
                 <table style="width: 100%; border-collapse: collapse;">
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <tr style="border-bottom: 1px solid var(--border-color-primary);">
                         <td style="padding: 8px 0;">Words</td>
                         <td style="padding: 8px 0; text-align: right; font-weight: 600;">{analysis.metrics['word_count']}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <tr style="border-bottom: 1px solid var(--border-color-primary);">
                         <td style="padding: 8px 0;">Keywords</td>
                         <td style="padding: 8px 0; text-align: right; font-weight: 600;">{analysis.metrics['keyword_count']}</td>
                     </tr>
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                    <tr style="border-bottom: 1px solid var(--border-color-primary);">
                         <td style="padding: 8px 0;">Keyword Ratio</td>
                         <td style="padding: 8px 0; text-align: right; font-weight: 600;">{analysis.metrics['keyword_ratio']:.1%}</td>
                     </tr>
@@ -479,8 +479,8 @@ class QueryIntelligence:
                 </table>
             </div>
 
-            <div style="background: #fef3c7; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b;">
-                <h4 style="margin-top: 0; color: #92400e;">💡 Suggestions</h4>
+            <div style="background: rgba(251, 191, 36, 0.2); padding: 15px; border-radius: 6px; border-left: 4px solid rgb(251, 191, 36);">
+                <h4 style="margin-top: 0;">💡 Suggestions</h4>
                 {'<br>'.join(analysis.suggestions) if analysis.suggestions else 'No suggestions - query looks good!'}
             </div>
         </div>
