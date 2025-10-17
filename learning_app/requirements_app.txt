@@ -1,8 +1,8 @@
 # Additional requirements for the AI Engineering Learning App
 # Install these on top of the main project requirements.txt
 
-# Web UI Framework (stable version for GitHub Codespaces compatibility)
-gradio==4.19.0
+# Web UI Framework (upgraded to latest version for performance and features)
+gradio==5.49.1
 
 # Embedding models (required for the app)
 sentence-transformers==4.0.2

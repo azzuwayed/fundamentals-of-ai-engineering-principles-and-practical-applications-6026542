@@ -28,6 +28,15 @@ LinkedIn Learning course "Fundamentals of AI Engineering: Principles and Practic
 **LlamaIndex:** Document readers (PDF/DOCX/Web/CSV/JSON), BM25Retriever, VectorStoreIndex, SentenceSplitter chunking
 **Vector/Embeddings:** ChromaDB, SentenceTransformers (`all-MiniLM-L6-v2`)
 **LLMs:** Transformers library, PyTorch CPU-only
+**UI Framework:** Gradio 5.49.1
+
+## Documentation Resources
+
+**Gradio Documentation:**
+- **Always use Context7** for up-to-date Gradio docs: `/websites/gradio_app`
+- Context7 provides curated, version-specific documentation and code examples
+- Official website: https://context7.com/websites/gradio_app
+- Use Context7 for migration guides, breaking changes, and API references
 
 ## Common Patterns
 
@@ -144,7 +153,7 @@ python app.py
 # In GitHub Codespaces: Check PORTS tab for forwarded URL
 ```
 
-**Note:** Uses Gradio 4.19.0 (stable version) for compatibility with GitHub Codespaces and local environments.
+**Note:** Uses Gradio 5.49.1 with server-side rendering for improved performance and modern UI.
 
 ### Architecture
 
