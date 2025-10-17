@@ -280,14 +280,82 @@ learning_app/
 │   ├── formatters.py            # Output formatting
 │   ├── validators.py            # Input validation
 │   └── plot_helpers.py          # Phase 1: Plotly utilities
-├── test_enhancements.py         # Phase 1: Test suite
-├── test_phase2.py               # Phase 2: Test suite
-├── test_phase3.py               # Phase 3: Test suite
+├── tests/                       # Test suites
+│   ├── test_phase1_visualization_explainability.py
+│   ├── test_phase2_advanced_retrieval.py
+│   └── test_phase3_rag_chat.py
 ├── run.sh                       # Automated launch script
+├── run_tests.sh                 # Interactive test runner
 └── data/
     ├── preloaded/               # Sample documents
     └── uploads/                 # User-uploaded files
 ```
+
+## Testing
+
+The app includes comprehensive test suites to validate all features.
+
+### Interactive Test Runner
+
+**Quick Start:**
+```bash
+cd learning_app
+./run_tests.sh
+```
+
+The interactive test runner provides:
+- **Menu-driven interface** for easy test selection
+- **Run all tests** at once with comprehensive summary
+- **Run individual tests** for targeted validation
+- **Color-coded output** for clear status reporting
+- **Automatic environment setup** and warning suppression
+
+**Available Test Suites:**
+
+1. **Phase 1: Visualization & Explainability**
+   - Tests embedding space visualization (UMAP/t-SNE)
+   - Tests similarity heatmaps
+   - Tests token analysis and explainability features
+   - File: `tests/test_phase1_visualization_explainability.py`
+
+2. **Phase 2: Advanced Retrieval**
+   - Tests query intelligence and intent classification
+   - Tests multi-query decomposition and fusion
+   - Tests advanced filtering (MMR, diversity)
+   - File: `tests/test_phase2_advanced_retrieval.py`
+
+3. **Phase 3: RAG Chat**
+   - Tests LLM manager with multiple backends
+   - Tests context manager and token budgets
+   - Tests RAG pipeline and conversation engine
+   - File: `tests/test_phase3_rag_chat.py`
+
+### Manual Test Execution
+
+```bash
+# Activate virtual environment first
+source ../.venv/bin/activate
+
+# Set environment variables to suppress warnings
+export TOKENIZERS_PARALLELISM=false
+export OMP_NESTED=FALSE
+
+# Run specific test
+python tests/test_phase3_rag_chat.py
+
+# Run all tests
+python tests/test_phase1_visualization_explainability.py
+python tests/test_phase2_advanced_retrieval.py
+python tests/test_phase3_rag_chat.py
+```
+
+### Test Output
+
+Tests provide:
+- ✓ **Success indicators** for passed tests
+- ✗ **Error messages** for failed tests
+- **Performance metrics** (timing, token counts)
+- **Detailed summaries** for each test suite
 
 ## Troubleshooting
 

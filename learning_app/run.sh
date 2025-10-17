@@ -310,6 +310,11 @@ echo ""
 # Export port for the app if needed
 export GRADIO_SERVER_PORT=$PORT
 
+# Set environment variables to suppress warnings
+export TOKENIZERS_PARALLELISM=false   # Suppress tokenizers fork warning
+export OMP_MAX_ACTIVE_LEVELS=1        # Replaces deprecated OMP_NESTED
+export KMP_WARNINGS=0                 # Suppress OpenMP runtime warnings
+
 # Launch the app
 cd "$SCRIPT_DIR"
 python3 app.py

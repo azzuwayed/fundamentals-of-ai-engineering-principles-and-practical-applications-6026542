@@ -2,9 +2,19 @@
 AI Engineering Interactive Learning App
 A comprehensive learning environment for AI engineering concepts.
 """
-import gradio as gr
 import os
 import sys
+
+# Suppress warnings before imports
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'  # Suppress tokenizers fork warning
+os.environ['OMP_MAX_ACTIVE_LEVELS'] = '1'       # Replaces deprecated OMP_NESTED
+os.environ['KMP_WARNINGS'] = '0'                # Suppress OpenMP runtime warnings
+
+# Filter sklearn deprecation warnings from UMAP
+import warnings
+warnings.filterwarnings('ignore', message='.*force_all_finite.*', category=FutureWarning)
+
+import gradio as gr
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

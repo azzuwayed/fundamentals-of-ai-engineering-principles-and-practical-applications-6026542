@@ -5,8 +5,13 @@ Validates visualization and explainability features.
 import sys
 import os
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory (learning_app/) to path for module imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Suppress sklearn and UMAP warnings
+import warnings
+warnings.filterwarnings('ignore', message='.*force_all_finite.*', category=FutureWarning)
+warnings.filterwarnings('ignore', message='.*n_jobs value.*overridden.*', category=UserWarning)
 
 import numpy as np
 from sentence_transformers import SentenceTransformer

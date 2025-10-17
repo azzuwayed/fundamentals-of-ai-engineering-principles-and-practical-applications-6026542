@@ -21,7 +21,7 @@ class VisualizationEngine:
         "umap_metric": "cosine",
         "tsne_perplexity": 30,
         "tsne_learning_rate": 200,
-        "tsne_n_iter": 1000,
+        "tsne_max_iter": 1000,
         "plot_height": 600,
         "plot_width": 800,
         "color_scale": "Viridis"
@@ -83,7 +83,7 @@ class VisualizationEngine:
             # t-SNE parameters
             perplexity = kwargs.get("perplexity", self.DEFAULT_CONFIG["tsne_perplexity"])
             learning_rate = kwargs.get("learning_rate", self.DEFAULT_CONFIG["tsne_learning_rate"])
-            n_iter = kwargs.get("n_iter", self.DEFAULT_CONFIG["tsne_n_iter"])
+            max_iter = kwargs.get("max_iter", self.DEFAULT_CONFIG["tsne_max_iter"])
 
             # Adjust perplexity if we have fewer samples
             perplexity = min(perplexity, embeddings.shape[0] - 1)
@@ -92,7 +92,7 @@ class VisualizationEngine:
                 n_components=n_components,
                 perplexity=perplexity,
                 learning_rate=learning_rate,
-                n_iter=n_iter,
+                max_iter=max_iter,
                 random_state=random_state
             )
             reduced = reducer.fit_transform(embeddings)
