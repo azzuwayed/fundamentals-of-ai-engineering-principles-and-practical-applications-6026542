@@ -244,7 +244,14 @@ try:
     from modules.advanced_filtering import AdvancedFilter
     print("✓")
 
-    print("\n✓ All imports successful (including Phase 1 & Phase 2 enhancements)")
+    print("  → Testing Phase 3 modules...", end=" ")
+    from modules.llm_manager import LLMManager, LLMConfig
+    from modules.context_manager import ContextManager
+    from modules.rag_pipeline import RAGPipeline
+    from modules.conversation_engine import ConversationEngine
+    print("✓")
+
+    print("\n✓ All imports successful (including Phase 1, Phase 2 & Phase 3 enhancements)")
     sys.exit(0)
 
 except Exception as e:

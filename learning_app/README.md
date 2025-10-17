@@ -14,6 +14,8 @@ This Gradio-based application provides an interactive environment for exploring 
 - **Hybrid Retrieval Studio**: Combine BM25 + vector search with cross-encoder reranking
 - **📊 Visualization Lab** (Phase 1): Visualize embedding spaces in 2D/3D using UMAP/t-SNE
 - **🔍 Explainability Studio** (Phase 1): Understand token contributions, BM25 scoring, and vector similarity
+- **🎯 Advanced Retrieval** (Phase 2): Query intelligence, multi-query search, and context filtering
+- **💬 RAG Chat** (Phase 3): Conversational RAG with LLM backends and educational process viewer
 
 ## Installation
 
@@ -165,6 +167,45 @@ python app.py
   - Production systems requiring quality + diversity
   - Exploratory research avoiding redundancy
 
+#### 8. 💬 RAG Chat (Phase 3 Enhancement)
+
+- **Purpose**: Interactive conversational RAG (Retrieval-Augmented Generation) system
+- **Features**:
+  - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-3.5, GPT-4)
+  - **Conversation History**: Multi-turn conversations with automatic pruning
+  - **Token Budget Management**: Smart allocation of context window
+  - **Educational Process Viewer**: See the 6-step RAG process transparently
+  - **Source Attribution**: Citations for every response
+- **Actions**:
+  - Select LLM backend and model
+  - Initialize RAG chat system
+  - Ask questions and get RAG-enhanced responses
+  - View detailed RAG process breakdown
+  - Manage conversation history
+- **RAG Process Steps**:
+  1. **Query Processing**: Analyze and prepare user query
+  2. **Document Retrieval**: Fetch relevant documents from vector store
+  3. **Context Assembly**: Format context and manage token budget
+  4. **Prompt Construction**: Build complete prompt with system/context/history
+  5. **Response Generation**: Generate answer using LLM
+  6. **Source Attribution**: Link response to source documents
+- **Key Parameters**:
+  - `backend`: Local (free, CPU) or OpenAI (requires API key)
+  - `model`: Model selection per backend
+  - `top_k`: Number of documents to retrieve (3-5 recommended)
+  - `retrieval_method`: BM25, vector, or hybrid
+- **Token Budget**:
+  - System prompt: 10% of context window
+  - RAG context: 50% of context window
+  - Conversation history: 20% of context window
+  - Generation buffer: 20% of context window
+- **Use Cases**:
+  - Understand how RAG systems work end-to-end
+  - Compare local vs API-based LLMs
+  - Learn token budget management
+  - Explore multi-turn conversational AI
+  - See transparent AI decision-making process
+
 ## Parameter Guide
 
 ### Document Processing
@@ -226,12 +267,22 @@ learning_app/
 │   ├── vector_store.py          # ChromaDB operations
 │   ├── retrieval_pipeline.py    # Hybrid retrieval logic
 │   ├── visualization_engine.py  # Phase 1: UMAP/t-SNE & heatmaps
-│   └── explainability_engine.py # Phase 1: Token analysis & BM25 breakdown
+│   ├── explainability_engine.py # Phase 1: Token analysis & BM25 breakdown
+│   ├── query_intelligence.py    # Phase 2: Query analysis & optimization
+│   ├── multi_query_engine.py    # Phase 2: Query decomposition & fusion
+│   ├── advanced_filtering.py    # Phase 2: MMR & diversity filtering
+│   ├── llm_manager.py           # Phase 3: LLM backend abstraction
+│   ├── context_manager.py       # Phase 3: Token budget management
+│   ├── rag_pipeline.py          # Phase 3: RAG orchestration
+│   └── conversation_engine.py   # Phase 3: Conversation history
 ├── utils/                       # Helper functions
 │   ├── formatters.py            # Output formatting
 │   ├── validators.py            # Input validation
 │   └── plot_helpers.py          # Phase 1: Plotly utilities
 ├── test_enhancements.py         # Phase 1: Test suite
+├── test_phase2.py               # Phase 2: Test suite
+├── test_phase3.py               # Phase 3: Test suite
+├── run.sh                       # Automated launch script
 └── data/
     ├── preloaded/               # Sample documents
     └── uploads/                 # User-uploaded files

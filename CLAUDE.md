@@ -157,6 +157,14 @@ A comprehensive Gradio-based web application that provides hands-on experimentat
    - **Context & Filtering**: Apply metadata filters, similarity thresholds, diversity controls, and MMR
    - Production-quality retrieval optimization techniques
 
+8. **💬 RAG Chat** (Phase 3 Enhancement)
+   - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-3.5, GPT-4)
+   - **Conversation History**: Multi-turn conversations with automatic pruning
+   - **Token Budget Management**: Smart allocation of limited context window
+   - **Educational Process Viewer**: See complete 6-step RAG process transparently
+   - **Source Attribution**: Citations and relevance scores for every response
+   - End-to-end conversational RAG system with production patterns
+
 ### Running the App
 
 **Quick Start (Recommended):**
@@ -201,7 +209,7 @@ python app.py
 
 ```
 learning_app/
-├── app.py                       # Main Gradio application (7 tabs)
+├── app.py                       # Main Gradio application (8 tabs)
 ├── run.sh                       # Automated launch script with verification
 ├── modules/                     # Core functionality
 │   ├── document_processor.py    # Document extraction & chunking
@@ -212,13 +220,18 @@ learning_app/
 │   ├── explainability_engine.py # Phase 1: Token/BM25/vector analysis
 │   ├── query_intelligence.py    # Phase 2: Query analysis & optimization
 │   ├── multi_query_engine.py    # Phase 2: Multi-query & result fusion
-│   └── advanced_filtering.py    # Phase 2: Metadata filters & MMR
+│   ├── advanced_filtering.py    # Phase 2: Metadata filters & MMR
+│   ├── llm_manager.py           # Phase 3: LLM backend abstraction
+│   ├── context_manager.py       # Phase 3: Token budget management
+│   ├── rag_pipeline.py          # Phase 3: RAG orchestration
+│   └── conversation_engine.py   # Phase 3: Conversation history
 ├── utils/                       # Helper functions
 │   ├── formatters.py            # Output formatting
 │   ├── validators.py            # Input validation
 │   └── plot_helpers.py          # Phase 1: Plotly utilities
 ├── test_enhancements.py         # Phase 1: Test suite
 ├── test_phase2.py               # Phase 2: Test suite
+├── test_phase3.py               # Phase 3: Test suite
 └── data/
     ├── preloaded/               # Sample documents (from doc_samples/)
     └── uploads/                 # User-uploaded files
@@ -274,13 +287,69 @@ cd learning_app
 python test_phase2.py  # Run Phase 2 test suite
 ```
 
+### Phase 3 Enhancements
+
+**New Dependencies:**
+- `openai==1.58.1` - OpenAI API for GPT models
+- `tiktoken==0.8.0` - Token counting for OpenAI models
+- `transformers==4.48.3` - Hugging Face transformers for local models
+- `torch==2.6.0` - PyTorch for local model inference
+
+**New Modules:**
+- `llm_manager.py` - Unified LLM interface with multiple backends (LocalLLM, OpenAILLM)
+- `context_manager.py` - Token budget allocation and context window management
+- `rag_pipeline.py` - Complete RAG orchestration with 6-step process tracking
+- `conversation_engine.py` - Multi-turn conversation history with automatic pruning
+
+**New Capabilities:**
+- **LLM Backends**: Support for local (DistilGPT2) and OpenAI API (GPT-3.5-turbo, GPT-4) models
+- **Factory Pattern**: LLMManager provides unified interface across different backends
+- **Token Counting**: Backend-specific token counting (tiktoken for OpenAI, AutoTokenizer for local)
+- **Context Management**: Intelligent allocation of limited context window with configurable ratios
+- **Budget Allocation**: System prompt (10%), RAG context (50%), conversation history (20%), generation (20%)
+- **Automatic Truncation**: Smart truncation strategies when content exceeds budget
+- **RAG Process Tracking**: Capture and display all 6 steps with timing and metadata
+- **Conversation History**: Multi-turn conversations with automatic pruning (10 turns default)
+- **Source Attribution**: Link responses to retrieved documents with similarity scores
+- **Educational Transparency**: Complete RAG process visible to learners
+
+**RAG Pipeline Architecture:**
+1. **Query Processing**: Analyze and prepare user query
+2. **Document Retrieval**: Fetch relevant documents using existing retrieval pipeline
+3. **Context Assembly**: Format documents and apply token budget allocation
+4. **Prompt Construction**: Build complete prompt with system/context/history/query
+5. **Response Generation**: Generate answer using selected LLM backend
+6. **Source Attribution**: Extract and format source citations
+
+**Key Design Patterns:**
+- **Abstract Base Class**: LLM interface for extensibility
+- **Factory Pattern**: LLMManager.create_llm() for backend instantiation
+- **Dataclasses**: LLMConfig, TokenBudget, RAGStep, RAGResult for type safety
+- **Graceful Degradation**: Missing OpenAI API key handled with informative messages
+- **Educational Focus**: All steps transparent with HTML formatting for Gradio display
+
+**Testing:**
+```bash
+cd learning_app
+python test_phase3.py  # Run Phase 3 test suite
+```
+
+**Test Coverage:**
+- LLM manager: Factory creation, model info, token counting, generation
+- Context manager: Budget allocation, truncation strategies, HTML reporting
+- Conversation engine: Message management, history retrieval, pruning, export/import
+- RAG pipeline: Complete execution with mock retrieval, 6-step validation
+
 ### Usage Notes
 
-- **Progressive learning**: Tabs are ordered logically (1→2→3→4→5→6→7)
+- **Progressive learning**: Tabs are ordered logically (1→2→3→4→5→6→7→8)
 - **Document flow**: Process documents in Tab 1, then use in other tabs
 - **Visualization workflow**: Tab 1 → Tab 5 (generate embeddings first)
 - **Explainability workflow**: Use any query/document pair in Tab 6
 - **Advanced retrieval workflow**: Tab 1 (process docs) → Tab 7 (optimize queries and filter results)
+- **RAG Chat workflow**: Tab 1 (process docs) → Tab 8 (initialize RAG, ask questions)
+- **OpenAI API**: Set `OPENAI_API_KEY` environment variable to use GPT-3.5/GPT-4 backends
+- **Local LLM**: No API key needed for DistilGPT2 (free, CPU-only)
 - **Parameter experimentation**: All key parameters exposed as interactive controls
 - **Pre-loaded samples**: Quick start with included documents
 - **Session persistence**: Data persists across tabs during session

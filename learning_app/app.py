@@ -23,6 +23,10 @@ from modules.explainability_engine import (
 from modules.query_intelligence import QueryIntelligence
 from modules.multi_query_engine import MultiQueryEngine
 from modules.advanced_filtering import AdvancedFilter, FilterConfig
+from modules.llm_manager import LLMManager, LLMConfig
+from modules.context_manager import ContextManager
+from modules.rag_pipeline import RAGPipeline
+from modules.conversation_engine import ConversationEngine
 from utils import (
     format_results_table, format_metrics, format_document_preview,
     format_embedding_info, format_comparison_table,
@@ -47,6 +51,12 @@ current_model = None  # Current embedding model
 query_intelligence = QueryIntelligence()
 multi_query_engine = MultiQueryEngine(max_workers=4)
 advanced_filter = AdvancedFilter()
+
+# Phase 3 RAG Chat state
+conversation_engine = ConversationEngine(max_history_turns=10)
+rag_pipeline = None  # Initialized when LLM backend is selected
+current_llm = None   # Current LLM instance
+current_context_manager = None  # Context manager for current LLM
 
 
 # ============================================================================
@@ -647,6 +657,128 @@ def apply_advanced_filters_fn(
 
     except Exception as e:
         return "", f"Error: {str(e)}"
+
+
+# ============================================================================
+# TAB 8: RAG CHAT (PHASE 3)
+# ============================================================================
+
+def initialize_rag_chat_fn(backend, model_name):
+    """Initialize RAG chat with selected LLM backend."""
+    global current_llm, current_context_manager, rag_pipeline, retrieval_pipeline
+
+    try:
+        if retrieval_pipeline is None:
+            return "⚠️ Please set up the retrieval pipeline in the Hybrid Retrieval Studio tab first.", "", ""
+
+        # Create LLM
+        current_llm = LLMManager.create_llm(
+            backend=backend.lower(),
+            model_name=model_name if model_name else None
+        )
+
+        # Get model info
+        model_info = current_llm.get_model_info()
+
+        # Create context manager based on model's context window
+        current_context_manager = ContextManager(
+            context_window=model_info["context_window"],
+            system_prompt_ratio=0.1,
+            context_ratio=0.5,
+            history_ratio=0.2,
+            generation_ratio=0.2
+        )
+
+        # Create RAG pipeline
+        rag_pipeline = RAGPipeline(
+            retrieval_pipeline=retrieval_pipeline,
+            llm=current_llm,
+            context_manager=current_context_manager
+        )
+
+        status = f"""✓ RAG Chat Initialized Successfully!
+
+**LLM Backend:** {model_info['name']} ({model_info['backend']})
+**Context Window:** {model_info['context_window']:,} tokens
+**Ready to chat!**
+
+You can now enter your question below and click "Send Message"."""
+
+        return status, conversation_engine.get_stats_html(), ""
+
+    except Exception as e:
+        return f"Error initializing RAG chat: {str(e)}", "", ""
+
+
+def send_message_fn(user_message, top_k, retrieval_method):
+    """Send message and get RAG response."""
+    global conversation_engine, rag_pipeline
+
+    try:
+        if rag_pipeline is None:
+            return (
+                conversation_engine.get_history_html(),
+                "",
+                "",
+                conversation_engine.get_stats_html()
+            )
+
+        is_valid, error = validate_text_input(user_message, min_length=3)
+        if not is_valid:
+            return (
+                conversation_engine.get_history_html(),
+                "",
+                f"Query error: {error}",
+                conversation_engine.get_stats_html()
+            )
+
+        # Add user message to conversation
+        conversation_engine.add_user_message(user_message)
+
+        # Execute RAG pipeline
+        result = rag_pipeline.execute(
+            query=user_message,
+            conversation_history=conversation_engine.get_history_for_rag(),
+            top_k=top_k,
+            retrieval_method=retrieval_method.lower()
+        )
+
+        # Add assistant response to conversation
+        conversation_engine.add_assistant_message(
+            result.response,
+            metadata={"sources": result.sources, "tokens": result.tokens_used}
+        )
+
+        # Format outputs
+        conversation_html = conversation_engine.get_history_html()
+        rag_process_html = rag_pipeline.format_rag_process(result)
+        stats_html = conversation_engine.get_stats_html()
+
+        return conversation_html, rag_process_html, "", stats_html
+
+    except Exception as e:
+        return (
+            conversation_engine.get_history_html(),
+            "",
+            f"Error: {str(e)}",
+            conversation_engine.get_stats_html()
+        )
+
+
+def clear_conversation_fn():
+    """Clear conversation history."""
+    global conversation_engine
+
+    try:
+        conversation_engine.clear()
+        return (
+            conversation_engine.get_history_html(),
+            "",
+            "✓ Conversation cleared",
+            conversation_engine.get_stats_html()
+        )
+    except Exception as e:
+        return "", "", f"Error: {str(e)}", ""
 
 
 # ============================================================================
@@ -1312,12 +1444,166 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
                       - Threshold: Quality control for sensitive applications
                     """)
 
+        # ====================================================================
+        # TAB 8: RAG CHAT
+        # ====================================================================
+        with gr.Tab("8. 💬 RAG Chat"):
+            gr.Markdown("## RAG Chat (Phase 3 Enhancements)\nConversational retrieval-augmented generation with educational transparency")
+
+            with gr.Row():
+                with gr.Column(scale=1):
+                    gr.Markdown("### Setup LLM Backend")
+
+                    # Backend selection
+                    llm_backend = gr.Radio(
+                        choices=["Local", "OpenAI"],
+                        value="Local",
+                        label="LLM Backend"
+                    )
+
+                    # Model selection (conditional on backend)
+                    llm_model = gr.Dropdown(
+                        choices=["distilgpt2", "gpt2"],
+                        value="distilgpt2",
+                        label="Model"
+                    )
+
+                    init_chat_btn = gr.Button("Initialize RAG Chat", variant="primary")
+
+                    init_status = gr.Markdown("_Click 'Initialize RAG Chat' to begin_")
+
+                    gr.Markdown("---")
+
+                    # Chat statistics
+                    chat_stats = gr.HTML(label="Conversation Stats")
+
+                with gr.Column(scale=2):
+                    gr.Markdown("### Conversation")
+
+                    # Chat history display
+                    chat_history = gr.HTML(
+                        value="<div style='color: #9ca3af; font-style: italic;'>Initialize chat to begin conversation...</div>",
+                        label="Chat History"
+                    )
+
+                    # User input
+                    with gr.Row():
+                        user_input = gr.Textbox(
+                            label="Your Message",
+                            placeholder="Type your question here...",
+                            lines=3,
+                            scale=4
+                        )
+                        with gr.Column(scale=1):
+                            send_btn = gr.Button("Send Message", variant="primary")
+                            clear_btn = gr.Button("Clear Conversation")
+
+                    # Retrieval settings
+                    with gr.Row():
+                        chat_top_k = gr.Slider(
+                            minimum=1, maximum=10, value=3, step=1,
+                            label="Retrieved Documents (top_k)"
+                        )
+                        chat_retrieval_method = gr.Radio(
+                            choices=["BM25", "Vector", "Hybrid"],
+                            value="Hybrid",
+                            label="Retrieval Method"
+                        )
+
+                    # Status/Error messages
+                    chat_status = gr.Markdown("")
+
+            gr.Markdown("---")
+
+            # RAG Process Viewer (Educational)
+            with gr.Accordion("🔄 RAG Process Viewer (Educational)", open=False):
+                rag_process_display = gr.HTML(
+                    value="<div style='color: #9ca3af; font-style: italic;'>Send a message to see the RAG process breakdown...</div>",
+                    label="RAG Process Breakdown"
+                )
+
+            # Callbacks
+            def update_model_choices(backend):
+                """Update model dropdown based on backend."""
+                if backend == "Local":
+                    return gr.Dropdown(
+                        choices=["distilgpt2", "gpt2", "gpt2-medium"],
+                        value="distilgpt2"
+                    )
+                else:  # OpenAI
+                    return gr.Dropdown(
+                        choices=["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"],
+                        value="gpt-3.5-turbo"
+                    )
+
+            llm_backend.change(
+                update_model_choices,
+                inputs=[llm_backend],
+                outputs=[llm_model]
+            )
+
+            init_chat_btn.click(
+                initialize_rag_chat_fn,
+                inputs=[llm_backend, llm_model],
+                outputs=[init_status, chat_stats, chat_status]
+            )
+
+            send_btn.click(
+                send_message_fn,
+                inputs=[user_input, chat_top_k, chat_retrieval_method],
+                outputs=[chat_history, rag_process_display, chat_status, chat_stats]
+            )
+
+            clear_btn.click(
+                clear_conversation_fn,
+                outputs=[chat_history, rag_process_display, chat_status, chat_stats]
+            )
+
+            gr.Markdown("""
+            ### About RAG Chat
+
+            **What is RAG (Retrieval-Augmented Generation)?**
+            - Combines document retrieval with LLM generation
+            - Grounds LLM responses in your documents
+            - Provides sources for transparency
+
+            **How it works:**
+            1. **Query Processing**: Analyze user question
+            2. **Document Retrieval**: Find relevant docs from corpus
+            3. **Context Assembly**: Format context + manage token budget
+            4. **Prompt Construction**: Build complete LLM prompt
+            5. **Response Generation**: LLM generates answer
+            6. **Source Attribution**: Link response to source documents
+
+            **LLM Backend Options:**
+            - **Local (DistilGPT2)**: Fast, free, works offline, educational quality
+            - **OpenAI (GPT-3.5/4)**: High quality, requires API key, costs money
+
+            **Educational Focus:**
+            - Expand "RAG Process Viewer" to see each step
+            - Token budgets and context management shown transparently
+            - Conversation history tracked and displayed
+            - Sources cited for every response
+
+            **Tips:**
+            1. Set up retrieval pipeline first (Tab 4)
+            2. Start with Local backend for learning
+            3. Use Hybrid retrieval for best results
+            4. Watch token budgets in process viewer
+            5. Try multi-turn conversations to see history management
+
+            **For OpenAI API:**
+            - Set environment variable: `OPENAI_API_KEY=your-key-here`
+            - Costs money per token (~$0.001-0.03 per 1K tokens)
+            - Higher quality responses than local models
+            """)
+
     gr.Markdown("""
     ---
     ### About This App
     Built for the LinkedIn Learning course: *Fundamentals of AI Engineering*
 
-    Explore document processing → embeddings → vector search → hybrid retrieval → visualization → explainability → advanced retrieval
+    Explore document processing → embeddings → vector search → hybrid retrieval → visualization → explainability → advanced retrieval → RAG chat
     """)
 
 

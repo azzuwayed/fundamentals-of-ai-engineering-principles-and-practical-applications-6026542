@@ -39,3 +39,9 @@ umap-learn==0.5.7
 
 # Learning App UI (upgraded to latest version for performance and features)
 gradio==5.49.1
+
+# Phase 3 RAG Chat Dependencies
+openai==1.58.1              # OpenAI API for GPT models
+tiktoken==0.8.0             # Token counting for OpenAI models
+transformers==4.48.3        # Hugging Face transformers for local models
+torch==2.6.0                # PyTorch for local model inference
