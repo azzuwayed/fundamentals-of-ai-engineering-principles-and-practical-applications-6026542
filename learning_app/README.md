@@ -24,7 +24,44 @@ This Gradio-based application provides an interactive environment for exploring 
 - Python 3.12+
 - Virtual environment (recommended)
 
-### Setup
+### Quick Start with Automated Setup (Recommended)
+
+The easiest way to run the app is using the automated `run.sh` script:
+
+```bash
+cd learning_app
+./run.sh
+```
+
+The script automatically:
+- ✓ Checks Python 3.12+ installation
+- ✓ Verifies/installs `uv` package manager
+- ✓ Creates/activates virtual environment
+- ✓ Installs/updates all dependencies
+- ✓ Validates Gradio 5.49.1 installation
+- ✓ Tests all module imports
+- ✓ Checks port availability (auto-switches if needed)
+- ✓ Launches the application
+
+**Advanced Options:**
+
+```bash
+./run.sh --help                    # Show all options
+./run.sh --force-reinstall         # Force reinstall dependencies
+./run.sh --port 8080               # Run on custom port
+./run.sh --debug                   # Enable debug mode (verbose output)
+./run.sh --no-interactive          # Skip interactive prompts (CI/CD friendly)
+./run.sh --kill                    # Kill existing app processes and exit
+```
+
+**Interactive Features:**
+- Detects and offers to kill existing processes
+- Prompts for debug mode selection
+- Automatically finds alternative ports if default is occupied
+
+### Manual Setup (Alternative)
+
+If you prefer manual setup:
 
 1. **Install dependencies:**
 
@@ -89,8 +126,13 @@ curl http://localhost:11434/api/tags  # API health check
 5. **Use in the app:**
    - Go to **RAG Chat** tab
    - Select **Ollama** backend
-   - Choose your model from dropdown
+   - Choose your model from dropdown (models show size: e.g., "llama3.2:3b (1.9 GB)")
    - Click "Initialize RAG Chat"
+
+**Model Display:**
+- Models are automatically detected and sorted by size (smallest first)
+- Size information displayed next to each model name
+- No manual configuration needed - just install models with `ollama pull`
 
 **Model Recommendations:**
 - **Learning/Development**: llama3.2:3b (2GB RAM, fastest)
@@ -106,8 +148,14 @@ curl http://localhost:11434/api/tags  # API health check
 
 ### Quick Start
 
-1. **Launch the app:**
+1. **Launch the app** (recommended method):
 
+```bash
+cd learning_app
+./run.sh
+```
+
+Or manually:
 ```bash
 cd learning_app
 python app.py
@@ -456,10 +504,23 @@ python app.py
 
 **Issue**: Port 7860 is already occupied
 
-**Solution**: Use the automated `run.sh` script which automatically finds available ports:
+**Solution 1**: Kill existing processes quickly:
 ```bash
 cd learning_app
-./run.sh
+./run.sh --kill  # Stops all app.py processes
+./run.sh         # Start fresh
+```
+
+**Solution 2**: Let run.sh find alternative port automatically:
+```bash
+cd learning_app
+./run.sh  # Automatically detects and uses alternative port (7861-7870)
+```
+
+**Solution 3**: Specify custom port:
+```bash
+cd learning_app
+./run.sh --port 8080
 ```
 
 ### Out of memory errors
@@ -584,6 +645,58 @@ For issues or questions:
 - Check the course notebooks for detailed explanations
 - Review the Troubleshooting section above
 - Examine error messages carefully
+
+## Technical Notes
+
+### Ollama Integration Details
+
+The app integrates with Ollama using the official Python client (`ollama==0.4.4`). Key implementation details:
+
+**Typed Response Objects:**
+- Ollama library returns typed objects (`ollama._types.ListResponse`), not dictionaries
+- Models are accessed via `response.models` attribute, not `response["models"]`
+- Model properties use attribute access: `model.model`, `model.size`, `model.details`
+
+**Model Detection:**
+```python
+# Correct approach
+client = ollama.Client()
+response = client.list()
+models = response.models  # Use attribute access
+
+for model in models:
+    name = getattr(model, 'model', '')  # Safe attribute access
+    size = getattr(model, 'size', 0)
+```
+
+**Model Name Handling:**
+- UI displays: `"llama3.2:latest (1.9 GB)"`
+- Before LLM initialization, size info is stripped: `model_name.split(" (")[0]`
+- This prevents LLM errors when passing formatted display names
+
+**Automatic Sorting:**
+- Models sorted by size (smallest first) for better UX
+- Format: `f"{model_name} ({size_gb:.1f} GB)"`
+
+### Server Management
+
+The `run.sh` script includes robust server management:
+
+**Process Detection:**
+- Automatically detects existing `app.py` processes
+- Offers to kill conflicting processes before starting
+- Uses `pgrep -f "python.*app.py"` for reliable detection
+
+**Port Management:**
+- Checks port availability with `lsof -Pi :$PORT`
+- Automatically finds alternative ports (7861-7870)
+- Sets `GRADIO_SERVER_PORT` environment variable for dynamic binding
+- App respects `GRADIO_SERVER_PORT` for flexible deployment
+
+**Interactive Mode:**
+- Prompts for user decisions (kill processes, enable debug)
+- Can be disabled with `--no-interactive` for CI/CD
+- Debug mode can be enabled via flag or interactive prompt
 
 ## License
 

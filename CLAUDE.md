@@ -158,7 +158,7 @@ A comprehensive Gradio-based web application that provides hands-on experimentat
    - Production-quality retrieval optimization techniques
 
 8. **💬 RAG Chat** (Phase 3 Enhancement)
-   - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-3.5, GPT-4)
+   - **Multiple LLM Backends**: Local (DistilGPT2), Ollama (local LLMs), OpenAI API (GPT-4o/4.1, o3/o4)
    - **Conversation History**: Multi-turn conversations with automatic pruning
    - **Token Budget Management**: Smart allocation of limited context window
    - **Educational Process Viewer**: See complete 6-step RAG process transparently
@@ -191,6 +191,9 @@ The `run.sh` script automatically:
 ./run.sh --help                    # Show all options
 ./run.sh --force-reinstall         # Force reinstall dependencies
 ./run.sh --port 8080               # Run on custom port
+./run.sh --debug                   # Enable debug mode (verbose output)
+./run.sh --no-interactive          # Skip interactive prompts
+./run.sh --kill                    # Kill existing app processes and exit
 ```
 
 **Manual Setup (Alternative):**
@@ -290,20 +293,22 @@ python test_phase2.py  # Run Phase 2 test suite
 ### Phase 3 Enhancements
 
 **New Dependencies:**
-- `openai==1.58.1` - OpenAI API for GPT models
+- `openai==1.58.1` - OpenAI API for GPT models (GPT-4o/4.1, o3/o4)
+- `ollama==0.4.4` - Ollama Python client for local LLM inference
 - `tiktoken==0.8.0` - Token counting for OpenAI models
 - `transformers==4.48.3` - Hugging Face transformers for local models
 - `torch==2.6.0` - PyTorch for local model inference
 
 **New Modules:**
-- `llm_manager.py` - Unified LLM interface with multiple backends (LocalLLM, OpenAILLM)
+- `llm_manager.py` - Unified LLM interface with multiple backends (LocalLLM, OllamaLLM, OpenAILLM)
 - `context_manager.py` - Token budget allocation and context window management
 - `rag_pipeline.py` - Complete RAG orchestration with 6-step process tracking
 - `conversation_engine.py` - Multi-turn conversation history with automatic pruning
 
 **New Capabilities:**
-- **LLM Backends**: Support for local (DistilGPT2) and OpenAI API (GPT-3.5-turbo, GPT-4) models
+- **LLM Backends**: Local (DistilGPT2), Ollama (llama3.2, gemma3, qwen3, etc), OpenAI (GPT-4o/4.1, o3/o4)
 - **Factory Pattern**: LLMManager provides unified interface across different backends
+- **Model Detection**: Automatic discovery of installed Ollama models with size display
 - **Token Counting**: Backend-specific token counting (tiktoken for OpenAI, AutoTokenizer for local)
 - **Context Management**: Intelligent allocation of limited context window with configurable ratios
 - **Budget Allocation**: System prompt (10%), RAG context (50%), conversation history (20%), generation (20%)
@@ -348,10 +353,25 @@ python test_phase3.py  # Run Phase 3 test suite
 - **Explainability workflow**: Use any query/document pair in Tab 6
 - **Advanced retrieval workflow**: Tab 1 (process docs) → Tab 7 (optimize queries and filter results)
 - **RAG Chat workflow**: Tab 1 (process docs) → Tab 8 (initialize RAG, ask questions)
-- **OpenAI API**: Set `OPENAI_API_KEY` environment variable to use GPT-3.5/GPT-4 backends
-- **Local LLM**: No API key needed for DistilGPT2 (free, CPU-only)
+- **LLM Backends**:
+  - Local: DistilGPT2 (no setup, educational quality)
+  - Ollama: Install from ollama.ai, run `ollama pull llama3.2:3b` (free, local inference)
+  - OpenAI: Set `OPENAI_API_KEY` env variable (GPT-4o/4.1, paid)
 - **Parameter experimentation**: All key parameters exposed as interactive controls
 - **Pre-loaded samples**: Quick start with included documents
 - **Session persistence**: Data persists across tabs during session
 
 For detailed usage instructions, see `learning_app/README.md`.
+
+## Technical Notes
+
+**Ollama Integration:**
+- Ollama library returns typed objects (`ollama._types.ListResponse.Model`), not dictionaries
+- Use `getattr(model, 'attr', default)` for attribute access, not `model.get("key")`
+- Model names include size info in UI: `"llama3.2:latest (1.9 GB)"`
+- Strip size info before LLM initialization: `model_name.split(" (")[0]`
+
+**Server Management:**
+- `run.sh` handles process detection, port conflicts, and interactive setup
+- Use `--kill` flag to quickly stop existing processes
+- Dynamic port binding via `GRADIO_SERVER_PORT` environment variable
