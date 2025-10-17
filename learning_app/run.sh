@@ -24,6 +24,8 @@ REQUIRED_PYTHON_MAJOR=3
 REQUIRED_PYTHON_MINOR=12
 FORCE_REINSTALL=false
 PORT=$DEFAULT_PORT
+DEBUG_MODE=false
+INTERACTIVE=true
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -36,12 +38,29 @@ while [[ $# -gt 0 ]]; do
             PORT="$2"
             shift 2
             ;;
+        --debug)
+            DEBUG_MODE=true
+            INTERACTIVE=false
+            shift
+            ;;
+        --no-interactive)
+            INTERACTIVE=false
+            shift
+            ;;
+        --kill)
+            echo -e "${BLUE}Killing existing app.py processes...${NC}"
+            pkill -9 -f "python.*app.py" 2>/dev/null && echo -e "${GREEN}✓ Processes killed${NC}" || echo -e "${YELLOW}⚠ No processes found${NC}"
+            exit 0
+            ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --force-reinstall    Force reinstall all dependencies"
             echo "  --port PORT          Run on custom port (default: 7860)"
+            echo "  --debug              Enable debug mode (verbose output)"
+            echo "  --no-interactive     Skip interactive prompts"
+            echo "  --kill               Kill existing app processes and exit"
             echo "  --help               Show this help message"
             exit 0
             ;;
@@ -269,13 +288,46 @@ fi
 print_success "All dependencies verified"
 
 # ============================================================================
-# STEP 8: Check Port Availability
+# STEP 8: Server Management & Port Availability
 # ============================================================================
-print_header "Step 8: Checking Port Availability"
+print_header "Step 8: Server Management & Port Availability"
 
+# Check if any app.py processes are running
+RUNNING_PIDS=$(pgrep -f "python.*app.py" 2>/dev/null || echo "")
+
+if [ -n "$RUNNING_PIDS" ]; then
+    print_warning "Found existing app.py processes running:"
+    ps -p $RUNNING_PIDS -o pid,command | tail -n +2 | while read line; do
+        print_info "  $line"
+    done
+    echo ""
+
+    if [ "$INTERACTIVE" = true ]; then
+        read -p "Kill existing processes and continue? (Y/n): " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            print_info "Stopping existing processes..."
+            pkill -9 -f "python.*app.py" 2>/dev/null || true
+            sleep 1
+            print_success "Existing processes stopped"
+        else
+            print_info "Keeping existing processes running"
+        fi
+    else
+        # Non-interactive mode: always kill
+        print_info "Non-interactive mode: stopping existing processes..."
+        pkill -9 -f "python.*app.py" 2>/dev/null || true
+        sleep 1
+        print_success "Existing processes stopped"
+    fi
+fi
+
+# Check port availability
 if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
-    print_warning "Port $PORT is already in use"
-    print_info "Attempting to find available port..."
+    print_warning "Port $PORT is still in use by another process"
+    PORT_PROCESS=$(lsof -Pi :$PORT -sTCP:LISTEN -t)
+    print_info "Process using port $PORT: PID $PORT_PROCESS"
+    print_info "Attempting to find alternative port..."
 
     # Try alternative ports
     for alt_port in {7861..7870}; do
@@ -288,7 +340,7 @@ if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
 
     if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
         print_error "No available ports found in range 7860-7870"
-        print_info "Please stop other services or specify a custom port with --port"
+        print_info "Kill the process or specify a custom port with --port"
         exit 1
     fi
 else
@@ -296,12 +348,41 @@ else
 fi
 
 # ============================================================================
-# STEP 9: Launch Application
+# STEP 9: Interactive Options
 # ============================================================================
-print_header "Step 9: Launching Application"
+if [ "$INTERACTIVE" = true ]; then
+    print_header "Step 9: Launch Options"
+
+    echo -e "${YELLOW}Would you like to enable debug mode?${NC}"
+    echo "  Debug mode shows detailed logging for troubleshooting"
+    echo ""
+    read -p "Enable debug mode? (y/N): " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        DEBUG_MODE=true
+        print_success "Debug mode enabled"
+    else
+        print_info "Debug mode disabled (use --debug flag to enable)"
+    fi
+    echo ""
+fi
+
+# ============================================================================
+# STEP 10: Launch Application
+# ============================================================================
+print_header "Step 10: Launching Application"
 
 print_success "All checks passed!"
 echo ""
+
+if [ "$DEBUG_MODE" = true ]; then
+    print_warning "DEBUG MODE ENABLED"
+    print_info "All debug output will be shown in the console"
+    print_info "Look for lines starting with 'DEBUG' for detailed logs"
+    echo ""
+fi
+
 print_info "Starting AI Engineering Learning App..."
 print_info "Server will be available at: http://localhost:$PORT"
 print_info "Press Ctrl+C to stop the server"
@@ -310,10 +391,19 @@ echo ""
 # Export port for the app if needed
 export GRADIO_SERVER_PORT=$PORT
 
-# Set environment variables to suppress warnings
-export TOKENIZERS_PARALLELISM=false   # Suppress tokenizers fork warning
-export OMP_MAX_ACTIVE_LEVELS=1        # Replaces deprecated OMP_NESTED
-export KMP_WARNINGS=0                 # Suppress OpenMP runtime warnings
+# Set environment variables
+if [ "$DEBUG_MODE" = true ]; then
+    # Enable all debug output
+    export PYTHONUNBUFFERED=1
+    unset TOKENIZERS_PARALLELISM  # Show all warnings in debug mode
+    unset OMP_MAX_ACTIVE_LEVELS
+    unset KMP_WARNINGS
+else
+    # Suppress warnings in normal mode
+    export TOKENIZERS_PARALLELISM=false
+    export OMP_MAX_ACTIVE_LEVELS=1
+    export KMP_WARNINGS=0
+fi
 
 # Launch the app
 cd "$SCRIPT_DIR"

@@ -46,6 +46,62 @@ The app will start on `http://localhost:7860`
 
 **For GitHub Codespaces:** The port will be automatically forwarded. Check the PORTS tab in VS Code to access the app URL.
 
+### Ollama Setup (Optional - For High-Quality Local LLMs)
+
+To use production-quality open-source models locally through the Ollama backend:
+
+1. **Install Ollama:**
+
+```bash
+# macOS / Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# Download installer from https://ollama.com/download
+```
+
+2. **Start Ollama server:**
+
+```bash
+ollama serve
+```
+
+3. **Pull a model** (recommended: llama3.2:3b for speed):
+
+```bash
+# Fastest option - 2GB, great for learning
+ollama pull llama3.2:3b
+
+# Balanced option - 4.1GB, production quality
+ollama pull mistral:7b
+
+# High quality option - 4.7GB, excellent responses
+ollama pull llama3.1:8b
+```
+
+4. **Verify installation:**
+
+```bash
+ollama list  # Show downloaded models
+curl http://localhost:11434/api/tags  # API health check
+```
+
+5. **Use in the app:**
+   - Go to **RAG Chat** tab
+   - Select **Ollama** backend
+   - Choose your model from dropdown
+   - Click "Initialize RAG Chat"
+
+**Model Recommendations:**
+- **Learning/Development**: llama3.2:3b (2GB RAM, fastest)
+- **Balanced Quality**: mistral:7b (4.1GB RAM)
+- **Production**: llama3.1:8b or llama3.1:70b (requires 40GB RAM)
+
+**Ollama Resources:**
+- Official website: https://ollama.com
+- Model library: https://ollama.com/library
+- Documentation: https://github.com/ollama/ollama/blob/main/docs/api.md
+
 ## Usage
 
 ### Quick Start
@@ -171,7 +227,8 @@ python app.py
 
 - **Purpose**: Interactive conversational RAG (Retrieval-Augmented Generation) system
 - **Features**:
-  - **Multiple LLM Backends**: Local (DistilGPT2) and OpenAI API (GPT-4o, GPT-4.1, o3-pro, o4-mini)
+  - **Multiple LLM Backends**: Local (DistilGPT2), Ollama (local high-quality models), and OpenAI API (GPT-4o, GPT-4.1, o3-pro, o4-mini)
+  - **Ollama Support**: Run production-quality open-source models locally (Llama 3.2, Mistral, Phi-3, etc.)
   - **Latest Models**: GPT-4.1 with 1M token context window, GPT-4o-mini most cost-effective
   - **Conversation History**: Multi-turn conversations with automatic pruning
   - **Token Budget Management**: Smart allocation of context window (up to 1M tokens!)
@@ -191,10 +248,23 @@ python app.py
   5. **Response Generation**: Generate answer using LLM
   6. **Source Attribution**: Link response to source documents
 - **Key Parameters**:
-  - `backend`: Local (free, CPU) or OpenAI (requires API key)
+  - `backend`: Local (free, CPU), Ollama (high-quality local), or OpenAI (requires API key)
   - `model`: Model selection per backend
   - `top_k`: Number of documents to retrieve (3-5 recommended)
   - `retrieval_method`: BM25, vector, or hybrid
+- **LLM Backend Options**:
+  - **Local (DistilGPT2)**: Free, fast, CPU-only, educational quality (2K context)
+  - **Ollama**: Production-quality open-source models, runs locally, no API costs
+    - `llama3.2:3b` - Fastest, 3B params, 2GB RAM, 4K context (recommended)
+    - `mistral:7b` - Balanced, 7B params, 4.1GB RAM, 8K context
+    - `llama3.1:8b` - High quality, 8B params, 4.7GB RAM, 8K context
+    - `gemma2:9b` - Google's model, 9B params, 8K context
+    - `llama3.1:70b` - Production, 70B params, 40GB RAM, 8K context
+    - Plus phi3:mini, qwen2.5:7b, and mixtral:8x7b
+  - **OpenAI**: Cloud API, highest quality, requires API key, costs per token
+    - GPT-4o/GPT-4o-mini - 128K context, most cost-effective ($0.15/1M tokens)
+    - GPT-4.1/GPT-4.1-mini - 1M context window
+    - o3-pro/o4-mini - Advanced reasoning models
 - **Token Budget**:
   - System prompt: 10% of context window
   - RAG context: 50% of context window
@@ -415,6 +485,45 @@ cd learning_app
 **Issue**: Cross-encoder reranking is computationally expensive
 
 **Solution**: This is expected. Disable reranking for experimentation, enable for final results.
+
+### Ollama connection errors
+
+**Issue**: "Ollama server not available" or connection refused
+
+**Solution**:
+1. Ensure Ollama is installed: `ollama --version`
+2. Start Ollama server: `ollama serve`
+3. Verify server is running: `curl http://localhost:11434/api/tags`
+4. Check firewall isn't blocking port 11434
+
+**Issue**: Model not found error
+
+**Solution**:
+```bash
+# List installed models
+ollama list
+
+# Pull the missing model
+ollama pull llama3.2:3b
+
+# Verify model is available
+ollama list | grep llama3.2
+```
+
+**Issue**: Ollama generation is slow
+
+**Solution**:
+- Use smaller models (llama3.2:3b, phi3:mini)
+- Reduce max_tokens in generation settings
+- Ollama uses CPU by default; GPU acceleration requires compatible hardware
+- First generation is slower (model loading), subsequent ones are faster
+
+**Issue**: Out of memory with Ollama
+
+**Solution**:
+- Use smaller models: llama3.2:3b (2GB) instead of llama3.1:70b (40GB)
+- Close other applications
+- Check available RAM: smaller models for <8GB systems
 
 ## Extending the App
 

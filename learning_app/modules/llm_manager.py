@@ -33,6 +33,7 @@ class LLMResponse:
     tokens_used: int
     model_name: str
     backend: str
+    generation_time: float = 0.0
     metadata: Dict = None
 
     def __post_init__(self):
@@ -371,6 +372,314 @@ class OpenAILLM(LLM):
         }
 
 
+class OllamaLLM(LLM):
+    """
+    Ollama local LLM using official ollama Python library.
+
+    Advantages:
+    - High quality open-source models (Llama 3, Mistral, Phi, etc.)
+    - Runs completely locally
+    - No API costs
+    - Privacy-friendly
+    - Easy model switching
+    - Streaming support available
+
+    Limitations:
+    - Requires Ollama installation
+    - Requires model downloads (can be large)
+    - GPU recommended for best performance
+
+    Educational value: Shows production-quality local inference with official library
+    """
+
+    def __init__(
+        self,
+        model_name: str = "llama3.2:3b",
+        base_url: str = "http://localhost:11434"
+    ):
+        """
+        Initialize Ollama LLM.
+
+        Args:
+            model_name: Ollama model name (e.g., "llama3.2:3b", "mistral")
+            base_url: Ollama API base URL
+        """
+        self.model_name = model_name
+        self.base_url = base_url.rstrip('/')
+        self._client = None
+        self._check_ollama_available()
+
+    def _check_ollama_available(self):
+        """Check if Ollama is running using official library."""
+        try:
+            import ollama
+
+            # Create client for custom base URL
+            if self.base_url != "http://localhost:11434":
+                self._client = ollama.Client(host=self.base_url)
+            else:
+                self._client = ollama.Client()
+
+            # Test connection by listing models
+            try:
+                self._client.list()
+            except ollama.ResponseError as e:
+                warnings.warn(
+                    f"Ollama server not responding properly at {self.base_url}. "
+                    f"Error: {e.error}. Make sure Ollama is running: 'ollama serve'"
+                )
+            except Exception as e:
+                warnings.warn(
+                    f"Cannot connect to Ollama at {self.base_url}. "
+                    f"Error: {str(e)}. Install Ollama from https://ollama.ai and run 'ollama serve'"
+                )
+        except ImportError:
+            warnings.warn(
+                "ollama library not installed. Run: pip install ollama"
+            )
+            self._client = None
+
+    def generate(self, prompt: str, config: LLMConfig) -> LLMResponse:
+        """
+        Generate response using Ollama official library.
+
+        Args:
+            prompt: Input prompt
+            config: Generation configuration
+
+        Returns:
+            LLMResponse with generated text
+        """
+        import ollama
+        import time
+
+        if not self._client:
+            return LLMResponse(
+                text="[Ollama client not initialized. Install ollama: pip install ollama]",
+                tokens_used=0,
+                model_name=self.model_name,
+                backend="ollama",
+                metadata={"error": "client_not_initialized"}
+            )
+
+        try:
+            start_time = time.time()
+
+            # Call Ollama generate API with official library
+            response = self._client.generate(
+                model=self.model_name,
+                prompt=prompt,
+                stream=False,
+                options={
+                    "temperature": config.temperature,
+                    "top_p": config.top_p,
+                    "num_predict": config.max_tokens,
+                    "stop": config.stop_sequences or []
+                }
+            )
+
+            generation_time = time.time() - start_time
+
+            # Extract response data
+            generated_text = response.get("response", "")
+
+            # Get token counts (if provided by Ollama)
+            prompt_tokens = response.get("prompt_eval_count", 0)
+            completion_tokens = response.get("eval_count", 0)
+            tokens_used = prompt_tokens + completion_tokens
+
+            # If token counts not provided, estimate
+            if tokens_used == 0:
+                tokens_used = self.count_tokens(prompt) + self.count_tokens(generated_text)
+
+            return LLMResponse(
+                text=generated_text,
+                tokens_used=tokens_used,
+                model_name=self.model_name,
+                backend="ollama",
+                metadata={
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "generation_time": generation_time,
+                    "eval_duration_ms": response.get("eval_duration", 0) / 1_000_000 if response.get("eval_duration") else 0,
+                    "total_duration_ms": response.get("total_duration", 0) / 1_000_000 if response.get("total_duration") else 0
+                }
+            )
+
+        except ollama.ResponseError as e:
+            # Better error handling with official library
+            error_message = f"Ollama error: {e.error}"
+            if "model" in str(e.error).lower():
+                error_message += f". Try 'ollama pull {self.model_name}'"
+
+            return LLMResponse(
+                text=f"[{error_message}]",
+                tokens_used=0,
+                model_name=self.model_name,
+                backend="ollama",
+                metadata={
+                    "error": e.error,
+                    "status_code": e.status_code if hasattr(e, 'status_code') else None
+                }
+            )
+
+        except Exception as e:
+            return LLMResponse(
+                text=f"[Ollama error: {str(e)}. Make sure Ollama is running: 'ollama serve']",
+                tokens_used=0,
+                model_name=self.model_name,
+                backend="ollama",
+                metadata={"error": str(e)}
+            )
+
+    def generate_stream(self, prompt: str, config: LLMConfig):
+        """
+        Generate response with streaming (yields chunks as they arrive).
+
+        Args:
+            prompt: Input prompt
+            config: Generation configuration
+
+        Yields:
+            Text chunks as they are generated
+
+        Example:
+            ```python
+            for chunk in llm.generate_stream("Tell me a story", config):
+                print(chunk, end='', flush=True)
+            ```
+        """
+        import ollama
+
+        if not self._client:
+            yield "[Ollama client not initialized. Install ollama: pip install ollama]"
+            return
+
+        try:
+            # Call Ollama generate API with streaming enabled
+            stream = self._client.generate(
+                model=self.model_name,
+                prompt=prompt,
+                stream=True,
+                options={
+                    "temperature": config.temperature,
+                    "top_p": config.top_p,
+                    "num_predict": config.max_tokens,
+                    "stop": config.stop_sequences or []
+                }
+            )
+
+            # Yield each chunk as it arrives
+            for chunk in stream:
+                if "response" in chunk:
+                    yield chunk["response"]
+
+        except ollama.ResponseError as e:
+            error_message = f"Ollama error: {e.error}"
+            if "model" in str(e.error).lower():
+                error_message += f". Try 'ollama pull {self.model_name}'"
+            yield f"[{error_message}]"
+
+        except Exception as e:
+            yield f"[Ollama error: {str(e)}. Make sure Ollama is running: 'ollama serve']"
+
+    def count_tokens(self, text: str) -> int:
+        """
+        Count tokens using Ollama's tokenizer.
+
+        Note: Ollama doesn't expose tokenization directly, so we use a rough estimate.
+        """
+        # Rough estimate: 1 token ≈ 4 characters for most models
+        # This is acceptable for educational purposes and budget management
+        return len(text) // 4
+
+    def get_model_info(self) -> Dict:
+        """Get Ollama model information using official library."""
+        import ollama
+
+        if not self._client:
+            return {
+                "name": self.model_name,
+                "backend": "ollama",
+                "context_window": 4096,
+                "ollama_running": False,
+                "note": "Install Ollama from https://ollama.ai and run 'ollama serve'"
+            }
+
+        # Try to get actual model info from Ollama
+        try:
+            models_response = self._client.list()
+            # Use attribute access - response.models, not response.get("models")
+            models = models_response.models if hasattr(models_response, 'models') else []
+
+            for model in models:
+                # Use attribute access - model.model, not model.get("name")
+                model_name_full = getattr(model, 'model', '')
+                # Match model name (handle both "llama3.2:3b" and "llama3.2")
+                if model_name_full.startswith(self.model_name) or self.model_name in model_name_full:
+                    # Use attribute access - model.size, not model.get("size")
+                    size_bytes = getattr(model, 'size', 0)
+                    size_gb = size_bytes / (1024**3)
+
+                    # Estimate context window based on model family
+                    context_window = 4096  # Default
+                    if "llama3" in self.model_name.lower():
+                        context_window = 8192
+                    elif "mistral" in self.model_name.lower():
+                        context_window = 8192
+                    elif "phi" in self.model_name.lower():
+                        context_window = 4096
+                    elif "gemma" in self.model_name.lower():
+                        context_window = 8192
+
+                    # Use attribute access - model.details, not model.get("details")
+                    details = getattr(model, 'details', None)
+
+                    # details might also be a typed object, so use getattr
+                    if details:
+                        family = getattr(details, 'family', 'unknown')
+                        format_type = getattr(details, 'format', 'unknown')
+                        parameter_size = getattr(details, 'parameter_size', 'unknown')
+                        quantization = getattr(details, 'quantization_level', 'unknown')
+                    else:
+                        family = 'unknown'
+                        format_type = 'unknown'
+                        parameter_size = 'unknown'
+                        quantization = 'unknown'
+
+                    return {
+                        "name": self.model_name,
+                        "backend": "ollama",
+                        "context_window": context_window,
+                        "size_gb": f"{size_gb:.1f}",
+                        "family": family,
+                        "format": format_type,
+                        "parameter_size": parameter_size,
+                        "quantization": quantization,
+                        "ollama_running": True
+                    }
+
+        except ollama.ResponseError as e:
+            return {
+                "name": self.model_name,
+                "backend": "ollama",
+                "context_window": 4096,
+                "ollama_running": False,
+                "error": e.error
+            }
+        except Exception:
+            pass
+
+        # Fallback info if model not found but Ollama is running
+        return {
+            "name": self.model_name,
+            "backend": "ollama",
+            "context_window": 4096,
+            "ollama_running": True,
+            "note": f"Model not pulled. Run: ollama pull {self.model_name}"
+        }
+
+
 class LLMManager:
     """
     Factory for creating LLM backends.
@@ -388,7 +697,7 @@ class LLMManager:
         Create LLM backend.
 
         Args:
-            backend: "local" or "openai"
+            backend: "local", "ollama", or "openai"
             model_name: Model name (optional, uses defaults)
             **kwargs: Additional backend-specific arguments
 
@@ -399,13 +708,17 @@ class LLMManager:
             model_name = model_name or "distilgpt2"
             return LocalLLM(model_name=model_name, **kwargs)
 
+        elif backend == "ollama":
+            model_name = model_name or "llama3.2:3b"
+            return OllamaLLM(model_name=model_name, **kwargs)
+
         elif backend == "openai":
             model_name = model_name or "gpt-3.5-turbo"
             return OpenAILLM(model_name=model_name, **kwargs)
 
         else:
             raise ValueError(
-                f"Unknown backend: {backend}. Choose 'local' or 'openai'."
+                f"Unknown backend: {backend}. Choose 'local', 'ollama', or 'openai'."
             )
 
     @staticmethod
@@ -426,6 +739,14 @@ class LLMManager:
                 "speed": "Fast"
             },
             {
+                "id": "ollama",
+                "name": "Ollama (Llama 3/Mistral/Phi)",
+                "description": "Production-quality local models, requires Ollama installation",
+                "requires_api_key": False,
+                "quality": "Excellent",
+                "speed": "Medium"
+            },
+            {
                 "id": "openai",
                 "name": "OpenAI (GPT-4o/GPT-4.1/o3-pro)",
                 "description": "Latest models with huge context (up to 1M tokens), requires API key",
@@ -440,6 +761,9 @@ class LLMManager:
         """
         Get available models for backend.
 
+        For Ollama, returns only installed models from local system.
+        For other backends, returns recommended models.
+
         Args:
             backend: Backend name
 
@@ -447,7 +771,42 @@ class LLMManager:
             List of model names
         """
         if backend == "local":
-            return ["distilgpt2", "gpt2", "gpt2-medium"]
+            # Return local models with size info
+            return [
+                "distilgpt2 (82M params, 0.3 GB)",
+                "gpt2 (124M params, 0.5 GB)",
+                "gpt2-medium (355M params, 1.4 GB)"
+            ]
+
+        elif backend == "ollama":
+            # Query actual installed models from Ollama
+            try:
+                import ollama
+
+                client = ollama.Client()
+                response = client.list()
+
+                # Use attribute access - response.models (not dict key)
+                models = response.models if hasattr(response, 'models') else []
+
+                # Sort by size (smaller models first)
+                models_sorted = sorted(models, key=lambda m: getattr(m, 'size', 0))
+
+                # Format model names with sizes for dropdown display
+                model_names_sorted = [
+                    f"{getattr(m, 'model', '')} ({getattr(m, 'size', 0) / (1024**3):.1f} GB)"
+                    for m in models_sorted
+                ]
+
+                if model_names_sorted:
+                    return model_names_sorted
+                else:
+                    # No models installed
+                    return ["No models installed - run 'ollama pull llama3.2:3b'"]
+
+            except Exception:
+                # Ollama not available, return helpful message
+                return ["Ollama not available - install from https://ollama.ai"]
 
         elif backend == "openai":
             return [

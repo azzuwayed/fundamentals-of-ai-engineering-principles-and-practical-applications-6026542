@@ -684,10 +684,14 @@ def initialize_rag_chat_fn(backend, model_name):
         if retrieval_pipeline is None:
             return "⚠️ Please set up the retrieval pipeline in the Hybrid Retrieval Studio tab first.", "", ""
 
+        # Strip size info from model name if present
+        # Formats: "model (X.X GB)" or "model (XXM params, X.X GB)"
+        clean_model_name = model_name.split(" (")[0] if model_name and " (" in model_name else model_name
+
         # Create LLM
         current_llm = LLMManager.create_llm(
             backend=backend.lower(),
-            model_name=model_name if model_name else None
+            model_name=clean_model_name if clean_model_name else None
         )
 
         # Get model info
@@ -1469,7 +1473,7 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
 
                     # Backend selection
                     llm_backend = gr.Radio(
-                        choices=["Local", "OpenAI"],
+                        choices=["Local", "Ollama", "OpenAI"],
                         value="Local",
                         label="LLM Backend"
                     )
@@ -1477,7 +1481,7 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
                     # Model selection (conditional on backend)
                     llm_model = gr.Dropdown(
                         choices=LLMManager.get_available_models("local"),
-                        value="distilgpt2",
+                        value="distilgpt2 (82M params, 0.3 GB)",
                         label="Model"
                     )
 
@@ -1541,15 +1545,33 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
                 backend_key = backend.lower()
                 models = LLMManager.get_available_models(backend_key)
 
+                # Ensure we have models and they're not error messages
+                if not models or any(msg in str(models[0]).lower() for msg in ["not available", "no models"]):
+                    return gr.Dropdown(
+                        choices=models if models else ["No models available"],
+                        value=models[0] if models else "No models available",
+                        label="Model (setup required)"
+                    )
+
                 if backend == "Local":
                     return gr.Dropdown(
                         choices=models,
-                        value=models[0] if models else "distilgpt2"
+                        value=models[0] if models else "distilgpt2 (82M params, 0.3 GB)",
+                        label="Model"
+                    )
+                elif backend == "Ollama":
+                    # Use first available model (sorted by size)
+                    default_model = models[0] if models else None
+                    return gr.Dropdown(
+                        choices=models,
+                        value=default_model,
+                        label=f"Model ({len(models)} installed)"
                     )
                 else:  # OpenAI
                     return gr.Dropdown(
                         choices=models,
-                        value="gpt-4o-mini" if "gpt-4o-mini" in models else models[0]
+                        value="gpt-4o-mini" if "gpt-4o-mini" in models else models[0],
+                        label="Model"
                     )
 
             llm_backend.change(
@@ -1629,10 +1651,17 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
 
 
 if __name__ == "__main__":
+    # Read port from environment or use default
+    port = int(os.getenv("GRADIO_SERVER_PORT", 7860))
+
     print("Starting AI Engineering Learning App...")
     print("=" * 60)
+    print(f"Server will run on port: {port}")
+    print(f"Access at: http://localhost:{port}")
+    print("=" * 60)
+
     app.launch(
         server_name="0.0.0.0",
-        server_port=7860,
+        server_port=port,
         share=False
     )

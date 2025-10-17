@@ -45,3 +45,4 @@ openai==1.58.1              # OpenAI API for GPT models
 tiktoken==0.8.0             # Token counting for OpenAI models
 transformers==4.48.3        # Hugging Face transformers for local models
 torch==2.6.0                # PyTorch for local model inference
+ollama==0.4.4               # Ollama Python client for local LLM inference
