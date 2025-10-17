@@ -1,0 +1,108 @@
+# AI Engineering Learning App - .gitignore
+
+# ============================================================
+# User-Generated Content & Data
+# ============================================================
+# User-uploaded files
+data/uploads/
+data/uploads/*
+
+# ChromaDB vector database files
+data/chroma_db/
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Model cache directories
+models/
+model_cache/
+.cache/
+
+# ============================================================
+# Python
+# ============================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# ============================================================
+# Virtual Environments
+# ============================================================
+.venv/
+venv/
+ENV/
+env/
+
+# ============================================================
+# IDE & Editor
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# ============================================================
+# OS Files
+# ============================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ============================================================
+# Logs & Temporary Files
+# ============================================================
+*.log
+*.tmp
+*.temp
+logs/
+
+# ============================================================
+# Environment Variables
+# ============================================================
+.env
+.env.local
+.env.*.local
+
+# ============================================================
+# Jupyter Notebook
+# ============================================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ============================================================
+# Keep These (Negation Patterns)
+# ============================================================
+# Keep preloaded sample documents
+!data/preloaded/
+!data/preloaded/**
