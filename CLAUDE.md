@@ -139,6 +139,18 @@ A comprehensive Gradio-based web application that provides hands-on experimentat
    - Enable cross-encoder reranking
    - Side-by-side method comparison
 
+5. **📊 Visualization Lab** (Phase 1 Enhancement)
+   - Visualize embedding spaces in 2D/3D using UMAP or t-SNE
+   - Create interactive similarity heatmaps
+   - Understand document clustering and relationships
+   - Explore dimensionality reduction techniques
+
+6. **🔍 Explainability Studio** (Phase 1 Enhancement)
+   - Token-level similarity analysis with highlighting
+   - BM25 scoring breakdown (TF, IDF, final scores)
+   - Vector similarity component analysis
+   - Understand retrieval decision-making process
+
 ### Running the App
 
 **Quick Start (Recommended):**
@@ -183,25 +195,51 @@ python app.py
 
 ```
 learning_app/
-├── app.py                    # Main Gradio application
-├── run.sh                    # Automated launch script with verification
-├── modules/                  # Core functionality
-│   ├── document_processor.py # Document extraction & chunking
-│   ├── embeddings_engine.py  # Embedding generation & similarity
-│   ├── vector_store.py       # ChromaDB operations
-│   └── retrieval_pipeline.py # BM25, vector, hybrid retrieval
-├── utils/                    # Helper functions
-│   ├── formatters.py         # Output formatting
-│   └── validators.py         # Input validation
+├── app.py                       # Main Gradio application (6 tabs)
+├── run.sh                       # Automated launch script with verification
+├── modules/                     # Core functionality
+│   ├── document_processor.py    # Document extraction & chunking
+│   ├── embeddings_engine.py     # Embedding generation & similarity
+│   ├── vector_store.py          # ChromaDB operations
+│   ├── retrieval_pipeline.py    # BM25, vector, hybrid retrieval
+│   ├── visualization_engine.py  # Phase 1: UMAP/t-SNE, heatmaps
+│   └── explainability_engine.py # Phase 1: Token/BM25/vector analysis
+├── utils/                       # Helper functions
+│   ├── formatters.py            # Output formatting
+│   ├── validators.py            # Input validation
+│   └── plot_helpers.py          # Phase 1: Plotly utilities
+├── test_enhancements.py         # Phase 1: Test suite
 └── data/
-    ├── preloaded/            # Sample documents (from doc_samples/)
-    └── uploads/              # User-uploaded files
+    ├── preloaded/               # Sample documents (from doc_samples/)
+    └── uploads/                 # User-uploaded files
+```
+
+### Phase 1 Enhancements
+
+**New Dependencies:**
+- `plotly==5.24.1` - Interactive visualizations
+- `umap-learn==0.5.7` - Dimensionality reduction
+
+**New Capabilities:**
+- Embedding space visualization (UMAP/t-SNE in 2D/3D)
+- Document similarity heatmaps
+- Token-level contribution analysis
+- BM25 scoring breakdown with term-by-term details
+- Vector similarity component analysis
+- Interactive Plotly charts with hover information
+
+**Testing:**
+```bash
+cd learning_app
+python test_enhancements.py  # Run Phase 1 test suite
 ```
 
 ### Usage Notes
 
-- **Progressive learning**: Tabs are ordered logically (3→4→5→6)
+- **Progressive learning**: Tabs are ordered logically (1→2→3→4→5→6)
 - **Document flow**: Process documents in Tab 1, then use in other tabs
+- **Visualization workflow**: Tab 1 → Tab 5 (generate embeddings first)
+- **Explainability workflow**: Use any query/document pair in Tab 6
 - **Parameter experimentation**: All key parameters exposed as interactive controls
 - **Pre-loaded samples**: Quick start with included documents
 - **Session persistence**: Data persists across tabs during session

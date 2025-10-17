@@ -221,6 +221,11 @@ try:
     )
     print("✓")
 
+    print("  → Testing Phase 1 modules...", end=" ")
+    from modules.visualization_engine import VisualizationEngine
+    from modules.explainability_engine import ExplainabilityEngine
+    print("✓")
+
     print("  → Testing utils import...", end=" ")
     from utils import (
         format_results_table,
@@ -229,7 +234,11 @@ try:
     )
     print("✓")
 
-    print("\n✓ All imports successful")
+    print("  → Testing Phase 1 utils...", end=" ")
+    from utils.plot_helpers import create_plotly_config
+    print("✓")
+
+    print("\n✓ All imports successful (including Phase 1 enhancements)")
     sys.exit(0)
 
 except Exception as e:

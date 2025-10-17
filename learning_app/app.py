@@ -14,10 +14,17 @@ from modules import (
     EmbeddingsEngine, format_similarity_score,
     VectorStore, RetrievalPipeline
 )
+from modules.visualization_engine import VisualizationEngine
+from modules.explainability_engine import (
+    ExplainabilityEngine,
+    format_bm25_table,
+    format_similarity_breakdown
+)
 from utils import (
     format_results_table, format_metrics, format_document_preview,
     format_embedding_info, format_comparison_table,
-    validate_file_upload, validate_text_input, validate_top_k
+    validate_file_upload, validate_text_input, validate_top_k,
+    create_plotly_config
 )
 
 # Global state
@@ -26,6 +33,12 @@ current_documents = []
 current_chunks = []
 vector_store = None
 retrieval_pipeline = None
+
+# Phase 1 Enhancement engines
+visualization_engine = VisualizationEngine()
+explainability_engine = ExplainabilityEngine()
+current_embeddings = []  # Store embeddings for visualization
+current_model = None  # Current embedding model
 
 
 # ============================================================================
@@ -304,6 +317,220 @@ def hybrid_retrieval_with_weights_fn(query, top_k, bm25_weight, vector_weight, u
 
     except Exception as e:
         return "", f"Error: {str(e)}"
+
+
+# ============================================================================
+# TAB 5: VISUALIZATION LAB
+# ============================================================================
+
+def generate_embeddings_for_viz_fn(model_name):
+    """Generate embeddings for current documents for visualization."""
+    global current_embeddings, current_model, current_chunks, current_documents
+
+    try:
+        if not current_documents and not current_chunks:
+            return "No documents loaded. Please process a document in the Document Processing tab first.", None
+
+        docs_to_embed = [chunk['text'] for chunk in current_chunks[:50]] if current_chunks else current_documents[:50]
+
+        if len(docs_to_embed) < 2:
+            return "Need at least 2 documents/chunks for visualization.", None
+
+        # Generate embeddings
+        engine = EmbeddingsEngine(model_name)
+        embeddings, gen_time = engine.generate_embeddings_batch(docs_to_embed)
+
+        # Store for reuse
+        current_embeddings = embeddings
+        current_model = model_name
+
+        result = f"✓ Generated embeddings for {len(embeddings)} documents\n"
+        result += f"Model: {model_name}\n"
+        result += f"Dimensions: {len(embeddings[0])}\n"
+        result += f"Time: {gen_time:.4f}s\n"
+        result += f"Ready for visualization!"
+
+        return result, None
+
+    except Exception as e:
+        return f"Error: {str(e)}", None
+
+
+def plot_embedding_space_fn(method, dimensions):
+    """Create embedding space visualization."""
+    global current_embeddings, visualization_engine, current_chunks
+
+    try:
+        if not current_embeddings:
+            return None
+
+        # Create labels
+        if current_chunks:
+            labels = [f"Chunk {i+1}" for i in range(len(current_embeddings))]
+        else:
+            labels = [f"Doc {i+1}" for i in range(len(current_embeddings))]
+
+        # Generate plot
+        n_components = 3 if dimensions == "3D" else 2
+        fig, timings = visualization_engine.plot_embedding_space(
+            current_embeddings,
+            labels=labels,
+            method=method.lower(),
+            n_components=n_components,
+            title=f"Embedding Space ({method.upper()}, {dimensions})"
+        )
+
+        return fig
+
+    except Exception as e:
+        print(f"Error in plot_embedding_space_fn: {e}")
+        return None
+
+
+def plot_similarity_heatmap_fn():
+    """Create similarity heatmap."""
+    global current_embeddings, visualization_engine, current_chunks
+
+    try:
+        if not current_embeddings:
+            return None
+
+        # Create labels
+        if current_chunks:
+            labels = [f"C{i+1}" for i in range(len(current_embeddings))]
+        else:
+            labels = [f"D{i+1}" for i in range(len(current_embeddings))]
+
+        # Limit to 20 for readability
+        embeddings_subset = current_embeddings[:20]
+        labels_subset = labels[:20]
+
+        # Generate heatmap
+        fig, metadata = visualization_engine.plot_similarity_heatmap(
+            embeddings_subset,
+            labels=labels_subset,
+            title="Document Similarity Matrix"
+        )
+
+        return fig
+
+    except Exception as e:
+        print(f"Error in plot_similarity_heatmap_fn: {e}")
+        return None
+
+
+# ============================================================================
+# TAB 6: EXPLAINABILITY STUDIO
+# ============================================================================
+
+def explain_token_similarity_fn(query, document, model_name):
+    """Explain token-level contributions to similarity."""
+    try:
+        is_valid1, error1 = validate_text_input(query, min_length=3)
+        if not is_valid1:
+            return f"Query error: {error1}", "", None
+
+        is_valid2, error2 = validate_text_input(document, min_length=10)
+        if not is_valid2:
+            return f"Document error: {error2}", "", None
+
+        # Load model
+        model = EmbeddingsEngine(model_name).model
+
+        # Get explanation
+        explanation = explainability_engine.explain_token_similarity(
+            query, document, model, top_k=10
+        )
+
+        # Format results
+        result = f"Overall Similarity: {explanation['overall_similarity']:.4f}\n\n"
+        result += f"Top Contributing Tokens:\n"
+        result += "=" * 60 + "\n"
+
+        for i, token_info in enumerate(explanation['token_contributions'][:10], 1):
+            in_doc = "✓" if token_info['in_document'] else "✗"
+            result += f"{i}. {token_info['token']}: {token_info['contribution']:.4f} [{in_doc} in doc]\n"
+
+        # Generate highlighted text
+        highlighted = explainability_engine.highlight_important_tokens(
+            query,
+            explanation['token_contributions']
+        )
+
+        return result, highlighted, None
+
+    except Exception as e:
+        return f"Error: {str(e)}", "", None
+
+
+def explain_bm25_fn(query, document):
+    """Explain BM25 score calculation."""
+    try:
+        is_valid1, error1 = validate_text_input(query, min_length=3)
+        if not is_valid1:
+            return f"Query error: {error1}", ""
+
+        is_valid2, error2 = validate_text_input(document, min_length=10)
+        if not is_valid2:
+            return f"Document error: {error2}", ""
+
+        # Get explanation
+        explanation = explainability_engine.explain_bm25_score(query, document)
+
+        # Format results
+        result = f"Total BM25 Score: {explanation['total_bm25_score']:.4f}\n\n"
+        result += f"Parameters:\n"
+        result += f"  k1={explanation['parameters']['k1']}, b={explanation['parameters']['b']}\n"
+        result += f"  Doc length: {explanation['parameters']['doc_length']} tokens\n"
+        result += f"  Avg doc length: {explanation['parameters']['avg_doc_length']:.0f} tokens\n\n"
+
+        # Create table
+        table_html = format_bm25_table(explanation['term_scores'])
+
+        return result, table_html
+
+    except Exception as e:
+        return f"Error: {str(e)}", ""
+
+
+def explain_vector_similarity_fn(query, document, model_name):
+    """Explain vector similarity calculation."""
+    try:
+        is_valid1, error1 = validate_text_input(query, min_length=3)
+        if not is_valid1:
+            return f"Query error: {error1}", ""
+
+        is_valid2, error2 = validate_text_input(document, min_length=10)
+        if not is_valid2:
+            return f"Document error: {error2}", ""
+
+        # Load model
+        model = EmbeddingsEngine(model_name).model
+
+        # Get explanation
+        explanation = explainability_engine.explain_vector_similarity(query, document, model)
+
+        # Format results
+        result = f"Cosine Similarity: {explanation['cosine_similarity']:.4f}\n"
+        result += f"Interpretation: {explanation['interpretation']}\n\n"
+        result += f"Components:\n"
+        result += f"  Dot Product: {explanation['dot_product']:.4f}\n"
+        result += f"  Query Magnitude: {explanation['query_norm']:.4f}\n"
+        result += f"  Document Magnitude: {explanation['doc_norm']:.4f}\n"
+        result += f"  Euclidean Distance: {explanation['euclidean_distance']:.4f}\n\n"
+        result += f"Top Contributing Dimensions:\n"
+        result += "=" * 60 + "\n"
+
+        for i, dim in enumerate(explanation['top_contributing_dimensions'][:5], 1):
+            result += f"{i}. Dim {dim['dimension']}: {dim['contribution']:.4f} ({dim['percentage']:.1f}%)\n"
+
+        # Create breakdown HTML
+        breakdown_html = format_similarity_breakdown(explanation)
+
+        return result, breakdown_html
+
+    except Exception as e:
+        return f"Error: {str(e)}", ""
 
 
 # ============================================================================
@@ -610,12 +837,206 @@ with gr.Blocks(title="AI Engineering Learning App", theme=gr.themes.Soft()) as a
             - **Production tip**: Hybrid + reranking = best quality
             """)
 
+        # ====================================================================
+        # TAB 5: VISUALIZATION LAB
+        # ====================================================================
+        with gr.Tab("5. 📊 Visualization Lab"):
+            gr.Markdown("## Visualization Lab (Phase 1 Enhancements)\nVisualize embedding spaces and document similarities")
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("### Step 1: Generate Embeddings")
+                    viz_model = gr.Dropdown(
+                        choices=list(EmbeddingsEngine.get_available_models().keys()),
+                        value="all-MiniLM-L6-v2",
+                        label="Embedding Model"
+                    )
+                    generate_emb_btn = gr.Button("Generate Embeddings", variant="primary")
+                    emb_status = gr.Textbox(label="Status", lines=5)
+
+            generate_emb_btn.click(
+                generate_embeddings_for_viz_fn,
+                inputs=[viz_model],
+                outputs=[emb_status, gr.State()]
+            )
+
+            gr.Markdown("---")
+
+            with gr.Tabs():
+                # Sub-tab: Embedding Space Visualization
+                with gr.Tab("Embedding Space"):
+                    gr.Markdown("### Visualize High-Dimensional Embeddings in 2D/3D")
+
+                    with gr.Row():
+                        reduction_method = gr.Radio(
+                            choices=["UMAP", "t-SNE"],
+                            value="UMAP",
+                            label="Dimensionality Reduction Method"
+                        )
+                        viz_dimensions = gr.Radio(
+                            choices=["2D", "3D"],
+                            value="2D",
+                            label="Visualization Dimensions"
+                        )
+
+                    plot_space_btn = gr.Button("Generate Visualization", variant="primary")
+                    embedding_space_plot = gr.Plot(label="Embedding Space Visualization")
+
+                    plot_space_btn.click(
+                        plot_embedding_space_fn,
+                        inputs=[reduction_method, viz_dimensions],
+                        outputs=[embedding_space_plot]
+                    )
+
+                    gr.Markdown("""
+                    **About Embedding Space Visualization:**
+                    - **UMAP**: Preserves global structure, faster, good for large datasets
+                    - **t-SNE**: Preserves local structure, slower, good for cluster visualization
+                    - **2D**: Easier to interpret, faster to compute
+                    - **3D**: More information, interactive rotation
+                    - **Hover**: See document labels and details
+                    - **Use Case**: Understand how documents cluster semantically
+                    """)
+
+                # Sub-tab: Similarity Heatmap
+                with gr.Tab("Similarity Heatmap"):
+                    gr.Markdown("### Document Similarity Matrix")
+
+                    plot_heatmap_btn = gr.Button("Generate Heatmap", variant="primary")
+                    heatmap_plot = gr.Plot(label="Similarity Heatmap")
+
+                    plot_heatmap_btn.click(
+                        plot_similarity_heatmap_fn,
+                        outputs=[heatmap_plot]
+                    )
+
+                    gr.Markdown("""
+                    **About Similarity Heatmap:**
+                    - **Color Scale**: Green (similar) → Yellow (moderate) → Red (dissimilar)
+                    - **Diagonal**: Always 1.0 (document compared to itself)
+                    - **Symmetry**: Matrix is symmetric (A→B = B→A)
+                    - **Click**: See exact similarity scores between document pairs
+                    - **Use Case**: Identify duplicate or highly related documents
+                    - **Note**: Limited to first 20 documents for readability
+                    """)
+
+        # ====================================================================
+        # TAB 6: EXPLAINABILITY STUDIO
+        # ====================================================================
+        with gr.Tab("6. 🔍 Explainability Studio"):
+            gr.Markdown("## Explainability Studio (Phase 1 Enhancements)\nUnderstand how retrieval systems make decisions")
+
+            with gr.Tabs():
+                # Sub-tab: Token Analysis
+                with gr.Tab("Token Analysis"):
+                    gr.Markdown("### Token-Level Similarity Contributions")
+
+                    with gr.Row():
+                        with gr.Column():
+                            token_query = gr.Textbox(label="Query", placeholder="Enter your query...", lines=2)
+                            token_document = gr.Textbox(label="Document", placeholder="Enter document text...", lines=5)
+                            token_model = gr.Dropdown(
+                                choices=list(EmbeddingsEngine.get_available_models().keys()),
+                                value="all-MiniLM-L6-v2",
+                                label="Embedding Model"
+                            )
+                            token_analyze_btn = gr.Button("Analyze Tokens", variant="primary")
+
+                        with gr.Column():
+                            token_results = gr.Textbox(label="Token Contributions", lines=15)
+
+                    token_highlighted = gr.HTML(label="Highlighted Query (by importance)")
+
+                    token_analyze_btn.click(
+                        explain_token_similarity_fn,
+                        inputs=[token_query, token_document, token_model],
+                        outputs=[token_results, token_highlighted, gr.State()]
+                    )
+
+                    gr.Markdown("""
+                    **About Token Analysis:**
+                    - Shows which query tokens contribute most to similarity
+                    - **Contribution**: Higher = more important for matching
+                    - **✓ in doc**: Token appears in the document
+                    - **Highlighting**: Darker = more important
+                    - **Use Case**: Debug why documents match or don't match
+                    - **Insight**: Understand semantic vs lexical matching
+                    """)
+
+                # Sub-tab: BM25 Breakdown
+                with gr.Tab("BM25 Breakdown"):
+                    gr.Markdown("### BM25 Score Calculation Explained")
+
+                    with gr.Row():
+                        with gr.Column():
+                            bm25_query = gr.Textbox(label="Query", placeholder="Enter query...", lines=2)
+                            bm25_document = gr.Textbox(label="Document", placeholder="Enter document...", lines=5)
+                            bm25_explain_btn = gr.Button("Explain BM25", variant="primary")
+
+                        with gr.Column():
+                            bm25_results = gr.Textbox(label="BM25 Score Breakdown", lines=10)
+
+                    bm25_table = gr.HTML(label="Term-by-Term Analysis")
+
+                    bm25_explain_btn.click(
+                        explain_bm25_fn,
+                        inputs=[bm25_query, bm25_document],
+                        outputs=[bm25_results, bm25_table]
+                    )
+
+                    gr.Markdown("""
+                    **About BM25:**
+                    - **TF (Term Frequency)**: How many times term appears in document
+                    - **IDF (Inverse Document Frequency)**: Rarity of term across corpus
+                    - **k1**: Controls term frequency saturation (default: 1.5)
+                    - **b**: Controls document length normalization (default: 0.75)
+                    - **Formula**: IDF × (TF × (k1 + 1)) / (TF + k1 × (1 - b + b × doc_len/avg_len))
+                    - **Use Case**: Understand why lexical search returns specific results
+                    """)
+
+                # Sub-tab: Vector Similarity
+                with gr.Tab("Vector Similarity"):
+                    gr.Markdown("### Cosine Similarity Component Analysis")
+
+                    with gr.Row():
+                        with gr.Column():
+                            vec_query = gr.Textbox(label="Query", placeholder="Enter query...", lines=2)
+                            vec_document = gr.Textbox(label="Document", placeholder="Enter document...", lines=5)
+                            vec_model = gr.Dropdown(
+                                choices=list(EmbeddingsEngine.get_available_models().keys()),
+                                value="all-MiniLM-L6-v2",
+                                label="Embedding Model"
+                            )
+                            vec_explain_btn = gr.Button("Explain Similarity", variant="primary")
+
+                        with gr.Column():
+                            vec_results = gr.Textbox(label="Similarity Breakdown", lines=15)
+
+                    vec_breakdown = gr.HTML(label="Formula Breakdown")
+
+                    vec_explain_btn.click(
+                        explain_vector_similarity_fn,
+                        inputs=[vec_query, vec_document, vec_model],
+                        outputs=[vec_results, vec_breakdown]
+                    )
+
+                    gr.Markdown("""
+                    **About Vector Similarity:**
+                    - **Cosine Similarity**: Measures angle between embedding vectors
+                    - **Range**: -1 (opposite) to 1 (identical), usually 0-1 for text
+                    - **Dot Product**: Sum of component-wise multiplications
+                    - **Magnitude**: Length of embedding vector (L2 norm)
+                    - **Formula**: cos(θ) = (A · B) / (||A|| × ||B||)
+                    - **Top Dimensions**: Which embedding dimensions contribute most
+                    - **Use Case**: Understand semantic similarity at vector level
+                    """)
+
     gr.Markdown("""
     ---
     ### About This App
     Built for the LinkedIn Learning course: *Fundamentals of AI Engineering*
 
-    Explore document processing → embeddings → vector search → hybrid retrieval
+    Explore document processing → embeddings → vector search → hybrid retrieval → visualization → explainability
     """)
 
 

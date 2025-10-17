@@ -12,6 +12,8 @@ This Gradio-based application provides an interactive environment for exploring 
 - **Embeddings Playground**: Compare embedding models and compute semantic similarity
 - **Vector Search Lab**: Experiment with ChromaDB for semantic search
 - **Hybrid Retrieval Studio**: Combine BM25 + vector search with cross-encoder reranking
+- **📊 Visualization Lab** (Phase 1): Visualize embedding spaces in 2D/3D using UMAP/t-SNE
+- **🔍 Explainability Studio** (Phase 1): Understand token contributions, BM25 scoring, and vector similarity
 
 ## Installation
 
@@ -29,7 +31,7 @@ This Gradio-based application provides an interactive environment for exploring 
 uv pip install -r requirements.txt
 ```
 
-All dependencies including Gradio 4.19.0 (stable version for compatibility) and sentence-transformers are included in requirements.txt.
+All dependencies including Gradio 5.49.1 (latest version with performance improvements) and sentence-transformers are included in requirements.txt.
 
 2. **Launch the app:**
 
@@ -107,6 +109,37 @@ python app.py
   - `vector_weight`: 0-1 (favor semantic similarity)
   - `reranking`: Enable for highest accuracy (slower)
 
+#### 5. 📊 Visualization Lab (Phase 1 Enhancement)
+
+- **Purpose**: Visualize high-dimensional embeddings and document relationships
+- **Actions**:
+  - Generate embeddings for loaded documents
+  - Visualize embedding space in 2D or 3D
+  - Create similarity heatmaps showing document relationships
+- **Features**:
+  - **Embedding Space**: UMAP or t-SNE dimensionality reduction
+  - **Similarity Heatmap**: Visual matrix of document similarities
+  - Interactive plots with hover information
+- **Key Parameters**:
+  - Reduction method: UMAP (faster, global structure) vs t-SNE (local clusters)
+  - Dimensions: 2D (easier to interpret) vs 3D (more information)
+
+#### 6. 🔍 Explainability Studio (Phase 1 Enhancement)
+
+- **Purpose**: Understand how retrieval systems make decisions
+- **Actions**:
+  - Analyze token-level contributions to similarity
+  - Break down BM25 scoring by term
+  - Explain vector similarity component-wise
+- **Features**:
+  - **Token Analysis**: See which query terms contribute most
+  - **BM25 Breakdown**: Understand TF, IDF, and final scores
+  - **Vector Similarity**: Examine cosine similarity calculation
+- **Use Cases**:
+  - Debug why certain documents match (or don't)
+  - Understand semantic vs lexical matching
+  - Learn how retrieval algorithms work
+
 ## Parameter Guide
 
 ### Document Processing
@@ -161,18 +194,22 @@ To add your own samples:
 
 ```
 learning_app/
-├── app.py                    # Main Gradio application
-├── modules/                  # Core functionality
-│   ├── document_processor.py # Document extraction & chunking
-│   ├── embeddings_engine.py  # Embedding generation
-│   ├── vector_store.py       # ChromaDB operations
-│   └── retrieval_pipeline.py # Hybrid retrieval logic
-├── utils/                    # Helper functions
-│   ├── formatters.py         # Output formatting
-│   └── validators.py         # Input validation
+├── app.py                       # Main Gradio application
+├── modules/                     # Core functionality
+│   ├── document_processor.py    # Document extraction & chunking
+│   ├── embeddings_engine.py     # Embedding generation
+│   ├── vector_store.py          # ChromaDB operations
+│   ├── retrieval_pipeline.py    # Hybrid retrieval logic
+│   ├── visualization_engine.py  # Phase 1: UMAP/t-SNE & heatmaps
+│   └── explainability_engine.py # Phase 1: Token analysis & BM25 breakdown
+├── utils/                       # Helper functions
+│   ├── formatters.py            # Output formatting
+│   ├── validators.py            # Input validation
+│   └── plot_helpers.py          # Phase 1: Plotly utilities
+├── test_enhancements.py         # Phase 1: Test suite
 └── data/
-    ├── preloaded/            # Sample documents
-    └── uploads/              # User-uploaded files
+    ├── preloaded/               # Sample documents
+    └── uploads/                 # User-uploaded files
 ```
 
 ## Troubleshooting
@@ -188,7 +225,6 @@ cd /path/to/project
 
 # Install all dependencies
 uv pip install -r requirements.txt
-uv pip install gradio==4.44.1
 
 # Try again
 cd learning_app
@@ -201,11 +237,15 @@ python app.py
 
 **Solution**: Models are cached after first download. Subsequent launches will be faster.
 
-### Gradio version issues
+### Port already in use
 
-**Issue**: API schema errors with Gradio 4.44.1
+**Issue**: Port 7860 is already occupied
 
-**Solution**: We use Gradio 4.19.0 (stable version) which works reliably in GitHub Codespaces and local environments.
+**Solution**: Use the automated `run.sh` script which automatically finds available ports:
+```bash
+cd learning_app
+./run.sh
+```
 
 ### Out of memory errors
 
